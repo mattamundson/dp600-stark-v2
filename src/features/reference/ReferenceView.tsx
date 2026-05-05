@@ -1,20 +1,32 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { refSections } from './content';
 import { PipelineDiagram } from './PipelineDiagram';
 
 export function ReferenceView() {
+  const [params, setParams] = useSearchParams();
+  const focus = params.get('focus');
+  const trapsFocus = focus === 'traps';
   const [q, setQ] = useState('');
   const categories = useMemo(() => Array.from(new Set(refSections.map((s) => s.category))), []);
   const filtered = useMemo(() => {
-    if (!q.trim()) return refSections;
+    let pool = refSections;
+    if (trapsFocus) {
+      pool = pool.filter((s) =>
+        /trap/i.test(s.slug) ||
+        /trap/i.test(s.title) ||
+        !!s.warning
+      );
+    }
+    if (!q.trim()) return pool;
     const needle = q.trim().toLowerCase();
-    return refSections.filter((s) =>
+    return pool.filter((s) =>
       s.title.toLowerCase().includes(needle) ||
       s.category.toLowerCase().includes(needle) ||
       (s.paragraphs ?? []).some((p) => p.toLowerCase().includes(needle)) ||
       (s.bullets ?? []).some((b) => b.toLowerCase().includes(needle))
     );
-  }, [q]);
+  }, [q, trapsFocus]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -33,6 +45,22 @@ export function ReferenceView() {
             Print / PDF
           </button>
         </div>
+        {trapsFocus && (
+          <div className="mt-3 flex items-center justify-between rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-sm text-warn">
+            <span><strong>Trap-focus on:</strong> showing only sections marked as exam traps ({filtered.length} of {refSections.length}).</span>
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={() => {
+                const next = new URLSearchParams(params);
+                next.delete('focus');
+                setParams(next);
+              }}
+            >
+              Show all
+            </button>
+          </div>
+        )}
         <div className="mt-3">
           <input className="input" placeholder="Search (e.g. ‘framing’, ‘RLS’, ‘pipeline’)…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>

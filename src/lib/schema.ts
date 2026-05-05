@@ -235,8 +235,6 @@ export interface Settings {
    * 'legacy' in the old SimulationView (no behavior change for existing users).
    */
   simRealismMode?: 'dp600' | 'dp600-quick' | 'legacy';
-  /** ISO date string (YYYY-MM-DD) for cockpit exam countdown. */
-  examDate?: string;
 }
 
 /** Single object stored under keyPath 'k' = 'state' */

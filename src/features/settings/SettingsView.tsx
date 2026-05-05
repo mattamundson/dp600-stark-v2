@@ -127,6 +127,20 @@ export function SettingsView() {
             />
             Beep at final minute (simulation)
           </label>
+          <label className="flex flex-col gap-2 text-sm">
+            <span className="text-muted">Simulation realism mode</span>
+            <select
+              className="input"
+              value={settings.simRealismMode ?? 'dp600'}
+              onChange={(e) =>
+                void patch({ simRealismMode: e.target.value as 'dp600' | 'dp600-quick' | 'legacy' })
+              }
+            >
+              <option value="dp600">DP-600 full · 65 Q / 100 min</option>
+              <option value="dp600-quick">DP-600 quick · 25 Q / 35 min</option>
+              <option value="legacy">Legacy · pre-realism behavior</option>
+            </select>
+          </label>
         </div>
       </section>
 

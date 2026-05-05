@@ -10,6 +10,8 @@ import type { Attempt, Session } from '../../lib/schema';
 import { useSettings } from '../../app/providers/SettingsProvider';
 import { daysBetween } from '../../lib/utils/time';
 import { DangerousWeakSpotsPanel } from '../../components/DangerousWeakSpotsPanel';
+import { calibrate } from '../analytics/calibration';
+import { rateReadiness, recommendNextBlock } from '../analytics/readiness';
 
 export function DashboardView() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -26,6 +28,12 @@ export function DashboardView() {
   }, []);
 
   const readiness = attempts.length ? readinessFromAttempts(attempts) : null;
+  const calibration = useMemo(() => (attempts.length ? calibrate(attempts) : null), [attempts]);
+  const readinessV2 = useMemo(() => (attempts.length ? rateReadiness(attempts, questionBank) : null), [attempts]);
+  const nextBlock = useMemo(
+    () => (readinessV2 ? recommendNextBlock(readinessV2, attempts, questionBank) : null),
+    [readinessV2, attempts]
+  );
   const lastSession = sessions.find((s) => s.finishedAt && s.resultSummary);
   const daysToExam = settings?.examDateIso ? Math.max(0, daysBetween(new Date().toISOString(), settings.examDateIso)) : null;
   const todayPlan = useMemo(() => {
@@ -74,6 +82,80 @@ export function DashboardView() {
       </section>
 
       <DangerousWeakSpotsPanel attempts={attempts} />
+
+      {readinessV2 && (
+        <section className="grid gap-4 md:grid-cols-2">
+          <div className="panel">
+            <h2 className="mb-3 text-lg font-bold">Readiness rating</h2>
+            <div className="flex items-baseline gap-3">
+              <span className="font-display text-3xl font-bold">{readinessV2.score}</span>
+              <span className="text-sm text-muted">/1000</span>
+              <span
+                className={`badge ${
+                  readinessV2.band === 'green'
+                    ? 'border-ok/40 bg-ok/15 text-ok'
+                    : readinessV2.band === 'yellow'
+                    ? 'border-warn/40 bg-warn/15 text-warn'
+                    : 'border-danger/40 bg-danger/15 text-danger'
+                }`}
+              >
+                {readinessV2.band}
+              </span>
+            </div>
+            <ul className="mt-3 space-y-1 text-sm">
+              <li className="flex justify-between"><span className="text-muted">Coverage</span><span>{readinessV2.subscores.coverage}</span></li>
+              <li className="flex justify-between"><span className="text-muted">Accuracy</span><span>{readinessV2.subscores.accuracy}</span></li>
+              <li className="flex justify-between"><span className="text-muted">Calibration</span><span>{readinessV2.subscores.calibration}</span></li>
+              <li className="flex justify-between"><span className="text-muted">Pacing</span><span>{readinessV2.subscores.pacing}</span></li>
+            </ul>
+            {nextBlock && (
+              <div className="mt-3 rounded-xl border border-primary/40 bg-primary/10 px-3 py-2 text-sm">
+                <div className="text-xs uppercase tracking-wider text-faint">Next block</div>
+                <div className="font-bold capitalize">{nextBlock.focus}</div>
+                <div className="text-muted">{nextBlock.rationale}</div>
+              </div>
+            )}
+          </div>
+          <div className="panel">
+            <h2 className="mb-3 text-lg font-bold">Confidence calibration</h2>
+            {calibration && calibration.n > 0 ? (
+              <>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-xs uppercase text-faint">
+                      <th className="border-b border-border px-1 py-2 text-left">Confidence</th>
+                      <th className="border-b border-border px-1 py-2 text-right">n</th>
+                      <th className="border-b border-border px-1 py-2 text-right">Acc%</th>
+                      <th className="border-b border-border px-1 py-2 text-right">Expected</th>
+                      <th className="border-b border-border px-1 py-2 text-right">Gap</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {calibration.bins.map((b) => (
+                      <tr key={b.confidence} className="border-b border-border/40">
+                        <td className="px-1 py-2 capitalize">{b.confidence}</td>
+                        <td className="px-1 py-2 text-right">{b.n}</td>
+                        <td className="px-1 py-2 text-right">{Number.isNaN(b.accuracy) ? '–' : `${Math.round(b.accuracy * 100)}%`}</td>
+                        <td className="px-1 py-2 text-right text-muted">{Math.round(b.expected * 100)}%</td>
+                        <td className={`px-1 py-2 text-right ${b.gap < -0.1 ? 'text-warn' : 'text-muted'}`}>
+                          {Number.isNaN(b.gap) ? '–' : `${b.gap > 0 ? '+' : ''}${Math.round(b.gap * 100)}pp`}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {calibration.overconfidenceScore > 0.05 && (
+                  <div className="mt-3 rounded-xl border border-warn/40 bg-warn/10 px-3 py-2 text-xs text-warn">
+                    <strong>Overconfidence detected</strong> — weighted gap {calibration.overconfidenceScore.toFixed(2)}. Watch the "sure" row.
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-muted">No data yet — calibration appears after a few attempts.</p>
+            )}
+          </div>
+        </section>
+      )}
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="panel">

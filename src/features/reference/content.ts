@@ -1,6 +1,8 @@
 // Reference content. Real, dense, exam-relevant. No placeholders.
 // Each section has a slug for deep-linking and a free-form body.
 
+import { refSectionsExtras } from './content-extras';
+
 export interface RefTable {
   headers: string[];
   rows: string[][];
@@ -17,7 +19,7 @@ export interface RefSection {
   warning?: string;
 }
 
-export const refSections: RefSection[] = [
+const refSectionsBase: RefSection[] = [
   {
     slug: 'direct-lake-mechanics',
     title: 'Direct Lake — mechanics',
@@ -616,3 +618,5 @@ export const refSections: RefSection[] = [
     ]
   }
 ];
+
+export const refSections: RefSection[] = [...refSectionsBase, ...refSectionsExtras];

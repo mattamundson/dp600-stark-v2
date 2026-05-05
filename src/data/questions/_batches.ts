@@ -34,6 +34,8 @@ import { maintainDeep } from './q-maintain-deep';
 import { fabricCli } from './q-fabric-cli';
 import { workspaceGovernance } from './q-workspace-governance';
 import { scenarioQuestionsBatch2 } from './q-scenarios-batch2';
+import { kqlAdvanced } from './q-kql-advanced';
+import { toolingPbi } from './q-tooling-pbi';
 
 export const qBatches: Question[][] = [
   directLake,
@@ -70,5 +72,7 @@ export const qBatches: Question[][] = [
   maintainDeep,
   fabricCli,
   workspaceGovernance,
-  scenarioQuestionsBatch2
+  scenarioQuestionsBatch2,
+  kqlAdvanced,
+  toolingPbi
 ];
