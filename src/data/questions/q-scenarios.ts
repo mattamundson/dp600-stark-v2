@@ -1764,5 +1764,102 @@ export const scenarioQuestions: Question[] = [
       4: 'OLS is for column/table hiding, not row-level filtering.'
     },
     source: SRC.rls, tags: ['rls', 'scenario', 'design-fix', 'multi-role']
+  }),
+
+  // ─── scn-39 — Sirius warehouse-RLS fallback storm (3 Qs) ──────
+  single({
+    id: 'scn-39-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-39', scenarioTitle: 'Sirius Cybernetics warehouse-RLS fallback storm',
+    prompt: 'What is the ROOT CAUSE of the fallback ratio spike?',
+    options: [
+      'V-Order is disabled on the warehouse Delta tables',
+      'Warehouse RLS predicates force Direct Lake to fall back to DirectQuery on every affected query — by design',
+      'F128 capacity is undersized for the workload',
+      'Direct Lake column-segment cache is too small'
+    ],
+    correct: 1,
+    explanation: 'Warehouse RLS forces fallback by design. Direct Lake column-segment path cannot evaluate SQL CREATE SECURITY POLICY predicates inline; the engine routes through DirectQuery. Capacity / cache / V-Order are unrelated to the security-driven fallback.',
+    whyWrong: {
+      0: 'V-Order affects column-segment serving, not predicate evaluation.',
+      2: 'The capacity is fine for column-segment serving; fallback is the cost driver, not raw size.',
+      3: 'Cache size does not determine whether predicates are honored.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'warehouse-rls', 'fallback']
+  }),
+  single({
+    id: 'scn-39-q2', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-39', scenarioTitle: 'Sirius Cybernetics warehouse-RLS fallback storm',
+    prompt: 'The junior dev suggests "switching to Direct Lake on OneLake to avoid fallback." Why does the senior architect raise an alarm?',
+    options: [
+      'Direct Lake on OneLake BYPASSES SQL endpoint RLS — switching would silently DROP the compliance enforcement, since model RLS has not been built yet',
+      'Direct Lake on OneLake is not GA',
+      'The migration would take weeks',
+      'There is no concern — it is a valid optimization'
+    ],
+    correct: 0,
+    explanation: 'This is the regulated-workload trap. OneLake variant does not consult the SQL endpoint for data reads, so warehouse RLS is bypassed entirely — a compliance violation. Migration MUST go: build model RLS → verify equivalence → switch storage variant. Skipping the model RLS build is a security incident.',
+    whyWrong: {
+      1: 'OneLake variant is GA.',
+      2: 'Migration time is real but secondary to the compliance issue.',
+      3: 'Concern is the entire point.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'on-onelake', 'compliance', 'migration-trap']
+  }),
+  multi({
+    id: 'scn-39-q3', type: 'scenario-multi', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-39', scenarioTitle: 'Sirius Cybernetics warehouse-RLS fallback storm',
+    prompt: 'Which migration plan satisfies BOTH compliance AND CU constraints? Select all that apply.',
+    options: [
+      'Phase 1: build model-layer RLS roles equivalent to warehouse predicates; verify with View as Role + XMLA + audit',
+      'Phase 2: keep BOTH model and warehouse RLS active during transition (defense-in-depth)',
+      'Phase 3: drop warehouse RLS only after audit-verified parity AND zero-traffic confirmation that model RLS is enforced everywhere',
+      'Phase 4: switch to Direct Lake on Warehouse with `Direct Lake behavior = Automatic` (model RLS now eliminates the fallback driver)',
+      'Skip all phases — switch to Direct Lake on OneLake immediately'
+    ],
+    correct: [0, 1, 2, 3],
+    explanation: 'Four phases of a safe migration: build (1) → run both (2) → drop warehouse RLS only with audit-verified parity (3) → final state with model RLS on Direct Lake on Warehouse (4). Skipping phases (5) is the migration trap from scn-39-q2.',
+    whyWrong: {
+      4: 'Skipping the model-RLS-build phase risks compliance gaps; the OneLake variant bypasses SQL RLS entirely.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'migration', 'compliance', 'phased-rollout']
+  }),
+
+  // ─── scn-40 — Initrode multi-tenant RLS scale (2 Qs) ──────────
+  single({
+    id: 'scn-40-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-40', scenarioTitle: 'Initrode SaaS multi-tenant RLS scale',
+    prompt: 'What is the BEST design that scales to 5000 tenants without per-tenant model edits?',
+    options: [
+      'One STATIC role per tenant (5000 roles)',
+      'ONE DYNAMIC role using `[TenantId] = LOOKUPVALUE(Users[TenantId], Users[Email], USERPRINCIPALNAME())` — adding a tenant is a row INSERT into Users, no model edit',
+      'Warehouse RLS — one CREATE SECURITY POLICY per tenant',
+      'OneLake folder per tenant + cross-folder semantic model'
+    ],
+    correct: 1,
+    explanation: 'Single dynamic role with a Users-table lookup scales linearly: tenant onboarding is a row INSERT, not a model deploy. Static-role-per-tenant is unmaintainable at 5000. Warehouse RLS forces fallback. Folder-per-tenant breaks the shared-table architecture.',
+    whyWrong: {
+      0: '5000 static roles is unmaintainable.',
+      2: 'Warehouse RLS forces DL fallback.',
+      3: 'Folder-per-tenant fragments the shared-table model.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'multi-tenant', 'dynamic-rls', 'scale']
+  }),
+  multi({
+    id: 'scn-40-q2', type: 'scenario-multi', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-40', scenarioTitle: 'Initrode SaaS multi-tenant RLS scale',
+    prompt: 'Which design considerations apply to the Users-table dynamic-RLS pattern at 5000 tenants? Select all that apply.',
+    options: [
+      'Users table must enforce uniqueness on Email — duplicates produce ambiguous LOOKUPVALUE results',
+      'Users table can be Direct Lake — does not need to be Import',
+      'Refresh latency: when a new tenant is added, the Users table refresh must complete before the user can see rows',
+      'The model must be re-deployed to add a new tenant',
+      'CU scaling: dynamic-role lookup is per-query — measure performance at peak concurrency'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Uniqueness on email (1), Direct Lake-compatible (2), refresh latency for new tenant visibility (3), per-query CU consideration (5). Re-deploying the model per tenant (4) is exactly what this design AVOIDS.',
+    whyWrong: {
+      3: 'No model redeploy needed — that is the design benefit. Adding a tenant is a row INSERT into Users.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'multi-tenant', 'considerations']
   })
 ];

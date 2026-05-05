@@ -362,6 +362,32 @@ export const refSections: RefSection[] = [
     warning: 'Patterns 1, 3, and 5 are SILENT failures — wrong but no error. Performance Analyzer + DAX Studio are the way to catch them.'
   },
   {
+    slug: 'direct-lake-security-traps',
+    title: 'Direct Lake security traps',
+    category: 'Direct Lake',
+    paragraphs: [
+      'Direct Lake security is the highest-density exam-trap area on DP-600. Two traps account for most wrong answers: warehouse RLS forces fallback, and Direct Lake on OneLake bypasses SQL RLS entirely. Memorise these two; the rest follows.'
+    ],
+    bullets: [
+      '**TRAP 1 — Warehouse RLS forces Direct Lake to fall back to DirectQuery.** VertiPaq cannot evaluate SQL CREATE SECURITY POLICY predicates inline; the engine routes through DirectQuery. CU per query goes up 2-3×. With `Direct Lake behavior = DirectLakeOnly`, queries FAIL instead of falling back.',
+      '**TRAP 2 — Direct Lake on OneLake BYPASSES SQL endpoint RLS.** OneLake variant reads Delta files directly; it does not consult the SQL endpoint for data reads. SQL RLS does not apply. Users see ALL rows their OneLake file permissions allow them to see. To enforce row filtering on OneLake variant: use semantic-model RLS roles + OneLake folder ACLs.',
+      '**Where to enforce RLS for lowest cost on Direct Lake on Warehouse:** at the SEMANTIC MODEL layer. Model RLS is evaluated by VertiPaq directly — no fallback required. CU stays on the column-segment path.',
+      '**Defense-in-depth (model + warehouse RLS) costs:** ~2-3× CU per query, drift risk between layers, doubled testing surface. Real costs.',
+      '**Multi-tenant SaaS pattern:** ONE dynamic role using `[TenantId] = LOOKUPVALUE(Users[TenantId], Users[Email], USERPRINCIPALNAME())`. Onboarding a tenant = row INSERT into Users table. Scales to 1000s without model redeploy.',
+      '**Migration from warehouse RLS to model RLS:** build → verify parity (View as Role + XMLA + audit) → run BOTH layers in transition → drop warehouse RLS only after audit-verified parity. Skipping the parity verification IS a compliance incident.'
+    ],
+    table: {
+      headers: ['Storage variant', 'Where SQL RLS applies?', 'Where model RLS applies?', 'Fallback behavior'],
+      rows: [
+        ['Direct Lake on Warehouse', 'YES — but via DirectQuery fallback', 'YES — at column-segment path', '`Automatic` falls back; `DirectLakeOnly` errors; `DirectQueryOnly` always DirectQuery'],
+        ['Direct Lake on OneLake', '**NO** — file reads bypass SQL endpoint', 'YES — at column-segment path', 'NEVER falls back; queries either succeed via Direct Lake or fail'],
+        ['Import', 'Frozen at refresh time (per-row evaluation against the snapshot)', 'YES — applied per-query in VertiPaq', 'No fallback (different mode)'],
+        ['DirectQuery', 'YES — every query', 'YES — combined with SQL', 'Always DirectQuery']
+      ]
+    },
+    warning: 'The Direct Lake on OneLake "no SQL RLS application" gap is the single highest-frequency exam trap on the security material. If the question says "regulated workload" + "Direct Lake on OneLake" + "SQL RLS configured" — the answer involves SEMANTIC MODEL RLS or OneLake ACLs, not SQL RLS.'
+  },
+  {
     slug: 'security-decision-matrix',
     title: 'Security decision matrix — pick the right tool',
     category: 'Maintain solution',

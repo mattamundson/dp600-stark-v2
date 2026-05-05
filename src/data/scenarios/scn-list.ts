@@ -463,5 +463,31 @@ export const scenarioBatch: Scenario[] = [
       'The architect investigates whether RLS is broken or working as designed.',
     questionIds: ['scn-38-q1', 'scn-38-q2'],
     tags: ['rls', 'multi-role', 'union', 'troubleshooting', 'design']
+  },
+  // ── Direct Lake security traps (2 scenarios, 5 questions) ─────
+  {
+    id: 'scn-39',
+    title: 'Sirius Cybernetics warehouse-RLS fallback storm',
+    domain: 'semantic',
+    business: 'Sirius Cybernetics — financial-services regtech, F128 capacity, regulated workload',
+    prompt:
+      'Sirius shipped a Direct Lake on Warehouse model with warehouse-level RLS predicates for compliance. Two weeks in, ' +
+      'capacity metrics show DirectQuery fallback ratio jumped from 5% to 70% during business hours; CU sustained at 110%; ' +
+      'p95 latency tripled. The compliance team says warehouse RLS is non-negotiable. The CFO rejects an SKU upgrade. ' +
+      'A junior dev suggests "switching to Direct Lake on OneLake to avoid the fallback." A senior architect raises an alarm.',
+    questionIds: ['scn-39-q1', 'scn-39-q2', 'scn-39-q3'],
+    tags: ['direct-lake', 'warehouse-rls', 'fallback', 'capacity', 'compliance', 'design-trap']
+  },
+  {
+    id: 'scn-40',
+    title: 'Initrode SaaS multi-tenant RLS scale',
+    domain: 'semantic',
+    business: 'Initrode — SaaS analytics platform serving 200 customer tenants on a single Fabric capacity',
+    prompt:
+      'Each Initrode customer sees only their own rows in shared semantic models. The original design used ONE static role per tenant ' +
+      '(200 roles total). Onboarding a new tenant requires editing the model + redeploying via the deployment pipeline (~2 hour cycle). ' +
+      'Engineering wants a design that scales to 5000 tenants without per-tenant model edits AND keeps Direct Lake on the column-segment path.',
+    questionIds: ['scn-40-q1', 'scn-40-q2'],
+    tags: ['rls', 'multi-tenant', 'dynamic-rls', 'scale', 'lookupvalue']
   }
 ];
