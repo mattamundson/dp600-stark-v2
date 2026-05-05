@@ -379,5 +379,44 @@ export const scenarioBatch: Scenario[] = [
       'Stark must produce a cross-region "users seen on BOTH US and EU clusters in the last 24 hours" report. The US cluster owns `SignInEvents` (1B rows, 7-day hot); the EU cluster owns its own `SignInEvents` of similar shape. The analyst must write a federated KQL query with the right `kind=` for symmetric-difference and intersection cuts, mind the cross-cluster broadcast cost, and decide where time filters and projections sit. Compliance requires that no row-level data is materialised in the wrong region.',
     questionIds: ['scn-31-q1', 'scn-31-q2'],
     tags: ['kql', 'cross-cluster', 'federated', 'join', 'kind']
+  },
+  // ── Maintain solution operations (3 scenarios, 8 questions) ─────────
+  {
+    id: 'scn-32',
+    title: 'Vandelay Imports capacity throttling triage',
+    domain: 'maintain',
+    business: 'Vandelay Imports — global trading firm, 800 Power BI users, F64 capacity',
+    prompt:
+      'Between 09:00 and 10:30 ET each weekday, the Capacity Metrics app shows CU% sustained at 110-130%. ' +
+      'Reports become unresponsive; users blame "the BI team". Default smoothing has not been adjusted. ' +
+      'A new sales-leadership dashboard launched two weeks ago shows ~40 daily-active users in the morning window. ' +
+      'Outside the morning window, CU% averages 45%. The CFO has rejected a permanent SKU upgrade.',
+    questionIds: ['scn-32-q1', 'scn-32-q2', 'scn-32-q3'],
+    tags: ['capacity', 'throttling', 'autoscale', 'monitoring', 'cost-optimization']
+  },
+  {
+    id: 'scn-33',
+    title: 'Cogswell Cogs intermittent refresh failures',
+    domain: 'maintain',
+    business: 'Cogswell Cogs — manufacturing, 40 scheduled refreshes nightly, on-prem gateway pool',
+    prompt:
+      'A scheduled nightly refresh of FactProduction (Import mode, ~14 GB) fails on roughly 1 in 8 runs with mixed error messages: ' +
+      'sometimes "Memory error: Allocation failure", sometimes a gateway timeout, sometimes a source-side connection reset. ' +
+      'There is no obvious pattern by weekday. The capacity is F64 (25 GB model memory ceiling). ' +
+      'A new colleague suggests upgrading to F128 to "make the memory error go away". A senior platform engineer asks for a diagnostic plan first.',
+    questionIds: ['scn-33-q1', 'scn-33-q2', 'scn-33-q3'],
+    tags: ['refresh', 'troubleshooting', 'memory', 'gateway', 'diagnostic']
+  },
+  {
+    id: 'scn-34',
+    title: 'Pawnee Civic semantic-model retirement',
+    domain: 'maintain',
+    business: 'Pawnee Civic Bureau — public-sector, 220 internal report consumers + 4 embedded apps',
+    prompt:
+      'A semantic model `Pawnee_Demographics_v1` will be replaced by a redesigned `Pawnee_Demographics_v2` that has ' +
+      'different table names but a re-mapped measure surface. 18 reports, 4 apps, and 60 saved bookmarks consume v1. ' +
+      'A new analyst proposes deleting v1 immediately to "force everyone to migrate". The data steward asks for a structured retirement plan with consumer impact mitigation.',
+    questionIds: ['scn-34-q1', 'scn-34-q2'],
+    tags: ['lifecycle', 'retirement', 'consumer-impact', 'migration', 'governance']
   }
 ];

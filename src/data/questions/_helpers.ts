@@ -164,5 +164,9 @@ export const SRC = {
   kql: { category: 'kusto-query-language', note: 'KQL operators and patterns' },
   eventhouse: { category: 'eventhouse', note: 'Real-time eventhouse + KQL DB' },
   pbip: { category: 'pbip-format', note: 'Project file format for source control' },
-  governance: { category: 'fabric-governance', note: 'Monitoring, capacity, governance' }
+  governance: { category: 'fabric-governance', note: 'Monitoring, capacity, governance' },
+  monitoring: { category: 'fabric-monitoring-hub', note: 'Monitoring hub, capacity metrics app, refresh history' },
+  capacity: { category: 'fabric-capacity', note: 'F-SKUs, bursting, throttling, autoscale' },
+  refresh: { category: 'refresh-management', note: 'Scheduled, on-demand, gateway-bound refresh' },
+  troubleshoot: { category: 'fabric-troubleshooting', note: 'Refresh failures, perf debugging, audit logs' }
 } satisfies Record<string, SourceAnchor>;

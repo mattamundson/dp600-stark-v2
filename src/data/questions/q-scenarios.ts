@@ -1393,5 +1393,161 @@ export const scenarioQuestions: Question[] = [
     explanation: 'Project to the minimum column on the remote side before crossing, and pre-aggregate to distinct sets per cluster.',
     whyWrong: { 2: 'Pulling raw EU rows into US violates the compliance constraint.', 3: 'fullouter is the wrong join shape for intersection AND does nothing for compliance.' },
     source: SRC.kql, tags: ['kql', 'scenario', 'compliance']
+  }),
+
+  // ─── scn-32 — Vandelay Imports capacity throttling triage (3 Qs) ─────
+  single({
+    id: 'scn-32-q1', type: 'scenario-single', domain: 'maintain', subtopic: 'capacity-management', difficulty: 4,
+    scenarioId: 'scn-32', scenarioTitle: 'Vandelay Imports capacity throttling triage',
+    prompt: 'CU is sustained at 110-130% for 90 minutes daily. Default smoothing is 5 minutes. What is the FIRST thing to recognise about this pattern?',
+    options: [
+      'It is a transient burst that smoothing will absorb — no action needed',
+      'It is a sustained overage that will hit throttling once the smoothing window is exhausted',
+      'It indicates a memory leak in the capacity',
+      'It is the documented "warm-up" effect that fades after F-SKU first-day usage'
+    ],
+    correct: 1,
+    explanation: '5-minute smoothing absorbs short bursts. 90-minute sustained 110-130% is a sustained overage — once the burst budget is consumed, throttling kicks in and interactive ops are delayed.',
+    whyWrong: {
+      0: 'Smoothing absorbs bursts of minutes, not 90 minutes of sustained overage.',
+      2: 'CU% reflects work being done, not memory health. A leak would surface as model-memory errors, not CU%.',
+      3: 'There is no documented "warm-up" period. F-SKU billing is per-second from start.'
+    },
+    source: SRC.capacity, tags: ['capacity', 'scenario', 'throttling', 'smoothing']
+  }),
+  single({
+    id: 'scn-32-q2', type: 'scenario-single', domain: 'maintain', subtopic: 'capacity-management', difficulty: 4,
+    scenarioId: 'scn-32', scenarioTitle: 'Vandelay Imports capacity throttling triage',
+    prompt: 'CFO has rejected a permanent SKU upgrade. Which is the BEST cost-aware mitigation?',
+    options: [
+      'Manually scale F64 → F128 each morning, scale back at noon',
+      'Configure a scheduled autoscale: F128 for 08:30–11:00, F64 for the rest of the day',
+      'Move all reports to Import mode to flatten the morning cost spike',
+      'Limit dashboard access to senior leadership during the morning window'
+    ],
+    correct: 1,
+    explanation: 'Scheduled autoscale exactly matches cost to demand. Manual scaling is an operational risk. Mode-changing all reports is a major rework with no guarantee of moving the cost curve. Restricting access fixes the symptom but not the cause and is politically toxic.',
+    whyWrong: {
+      0: 'Manual operations are error-prone and forgotten on holidays.',
+      2: 'Mode-changing is high effort and shifts cost to overnight refresh windows; does not address interactive concurrency.',
+      3: 'Access restriction is a workaround, not a solution.'
+    },
+    source: SRC.capacity, tags: ['capacity', 'scenario', 'autoscale', 'cost-control']
+  }),
+  multi({
+    id: 'scn-32-q3', type: 'scenario-multi', domain: 'maintain', subtopic: 'monitoring', difficulty: 4,
+    scenarioId: 'scn-32', scenarioTitle: 'Vandelay Imports capacity throttling triage',
+    prompt: 'Once autoscale is in place, what monitoring should be added to confirm the fix and catch drift? Select all that apply.',
+    options: [
+      'Capacity Metrics app dashboard pinned for the morning window',
+      'Reflex (Activator) trigger that alerts when CU% > 95% for > 10 minutes outside the autoscale window',
+      'Monthly cost-vs-prior-month delta review',
+      'Manually delete report items if CU% goes high again',
+      'Per-item CU breakdown to identify the heaviest offenders for further optimisation'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Pinned dashboard + Reflex alert + monthly cost review + per-item breakdown. Manual deletion is a destructive last-resort, not a monitoring strategy.',
+    whyWrong: {
+      3: 'Deleting items is destructive and not a monitoring action. Investigate the heaviest offenders first.'
+    },
+    source: SRC.monitoring, tags: ['capacity', 'scenario', 'monitoring', 'reflex', 'cost-review']
+  }),
+
+  // ─── scn-33 — Cogswell Cogs intermittent refresh failures (3 Qs) ─────
+  single({
+    id: 'scn-33-q1', type: 'scenario-single', domain: 'maintain', subtopic: 'troubleshooting', difficulty: 4,
+    scenarioId: 'scn-33', scenarioTitle: 'Cogswell Cogs intermittent refresh failures',
+    prompt: 'The new colleague suggests upgrading to F128 to "make the memory error go away". What is the senior engineer\'s correct objection?',
+    options: [
+      'F128 has the same memory ceiling — upgrade does not help',
+      'You only see "memory error" on a SUBSET of failures; gateway timeouts and connection resets need different fixes — a single-action mitigation is unlikely to address all three failure classes',
+      'F128 will cause the OPPOSITE problem (too much memory)',
+      'The capacity is fine — it is a Power BI Desktop client issue'
+    ],
+    correct: 1,
+    explanation: 'The errors come from at least three distinct subsystems (memory, gateway, source). Upgrading capacity may help the memory class but does nothing for gateway timeouts or source-side resets. Always investigate each error class before applying a single mitigation.',
+    whyWrong: {
+      0: 'F128 has 50 GB ceiling vs F64\'s 25 GB — it WOULD help the memory class. But that is only one of three failure classes.',
+      2: 'There is no "too much memory" pathology; the objection is about cost-effectiveness given heterogeneous errors, not memory damage.',
+      3: 'Errors clearly come from server/gateway side, not Desktop.'
+    },
+    source: SRC.troubleshoot, tags: ['troubleshooting', 'scenario', 'refresh', 'multi-cause', 'diagnostic']
+  }),
+  multi({
+    id: 'scn-33-q2', type: 'scenario-multi', domain: 'maintain', subtopic: 'troubleshooting', difficulty: 4,
+    scenarioId: 'scn-33', scenarioTitle: 'Cogswell Cogs intermittent refresh failures',
+    prompt: 'Which diagnostic actions should run BEFORE any mitigation? Select all that apply.',
+    options: [
+      'Pull the last 30 failed-run details from Monitoring hub and bucket by error class',
+      'Capture XMLA traces for the next 3 failures',
+      'Cross-reference failure timestamps with source-system maintenance windows + gateway machine event logs',
+      'Restart the gateway machine and see if failures stop',
+      'Check if any successful refresh peaked at memory > 90% of the F64 model ceiling'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Bucket the errors first, capture traces, correlate with source maintenance + gateway logs, and check memory headroom. Restarting the gateway destroys diagnostic evidence and is a "clear cache and pray" anti-pattern.',
+    whyWrong: {
+      3: 'Restart-and-pray clears diagnostic state without producing evidence. Capture, then act.'
+    },
+    source: SRC.troubleshoot, tags: ['troubleshooting', 'scenario', 'diagnostic', 'refresh', 'evidence-first']
+  }),
+  single({
+    id: 'scn-33-q3', type: 'scenario-single', domain: 'maintain', subtopic: 'refresh-management', difficulty: 4,
+    scenarioId: 'scn-33', scenarioTitle: 'Cogswell Cogs intermittent refresh failures',
+    prompt: 'Diagnostics reveal the memory failures correlate with a 14 GB model peaking near the F64 25-GB ceiling under concurrent query load. What is the right fix specific to this failure class?',
+    options: [
+      'Upgrade SKU to F128 (50 GB ceiling)',
+      'Reschedule refresh to a window with low concurrent query load (e.g., 02:00 instead of 19:00)',
+      'Both A and B are valid — the choice depends on whether the workload runs 24/7 or has quiet windows',
+      'Convert the model to Direct Lake (which has no per-refresh memory peak)'
+    ],
+    correct: 2,
+    explanation: 'Both options solve the memory class. SKU upgrade is the unconditional fix; refresh-window scheduling is the cheaper fix when concurrency drops at certain hours. D (convert to Direct Lake) is a major architectural change that may be right for OTHER reasons, but not the surgical fix for "intermittent refresh memory failures".',
+    whyWrong: {
+      0: 'Correct in isolation but option C is more complete and cost-aware.',
+      1: 'Correct in isolation but option C is more complete.',
+      3: 'Direct Lake conversion is a major redesign that may have its own consequences. Surgical fixes first.'
+    },
+    source: SRC.refresh, tags: ['refresh', 'scenario', 'memory', 'fix-classes']
+  }),
+
+  // ─── scn-34 — Pawnee Civic semantic-model retirement (2 Qs) ─────
+  single({
+    id: 'scn-34-q1', type: 'scenario-single', domain: 'maintain', subtopic: 'lifecycle-management', difficulty: 4,
+    scenarioId: 'scn-34', scenarioTitle: 'Pawnee Civic semantic-model retirement',
+    prompt: 'The new analyst proposes deleting v1 immediately. The steward objects. Which is the steward\'s STRONGEST argument?',
+    options: [
+      'Deletion is irreversible after 7 days — recovery window is too short',
+      'Consumers (18 reports + 4 apps + 60 bookmarks) will break instantly without warning, and rebinding requires manual action',
+      'It violates Microsoft licensing terms',
+      'v1 is a critical system that cannot be deleted at all'
+    ],
+    correct: 1,
+    explanation: 'Forced migration through deletion breaks consumers in the moment, with no graceful path. The strongest argument is the operational impact, not the recovery window or imagined licensing constraints.',
+    whyWrong: {
+      0: 'Recoverability matters but is a backstop, not the primary objection. The objection is that consumers will be in an outage right now.',
+      2: 'No licensing rule applies here.',
+      3: 'Models can absolutely be deleted; the steward is arguing for a structured process, not "never delete".'
+    },
+    source: SRC.governance, tags: ['lifecycle', 'scenario', 'retirement', 'consumer-impact']
+  }),
+  multi({
+    id: 'scn-34-q2', type: 'scenario-multi', domain: 'maintain', subtopic: 'lifecycle-management', difficulty: 4,
+    scenarioId: 'scn-34', scenarioTitle: 'Pawnee Civic semantic-model retirement',
+    prompt: 'Which actions belong in a structured v1 → v2 retirement plan that minimises consumer disruption? Select all that apply.',
+    options: [
+      'Inventory all 22 consumers (reports + apps) and identify an owner per consumer',
+      'Build a measure-name bridge in v2 (alias old → new) to preserve the consumer surface where possible',
+      'Migrate consumers to v2 with explicit owner sign-off per consumer before retiring v1',
+      'Announce a ≥30-day grace period and mark v1 with a "retiring" sensitivity label',
+      'Delete v1 immediately after the announcement to "force migration"',
+      'Confirm zero traffic via audit logs before deleting v1'
+    ],
+    correct: [0, 1, 2, 3, 5],
+    explanation: 'Inventory → bridge → migrate with sign-off → notify + grace period → delete only with zero-traffic confirmation. Forced-deletion (option 4) breaks consumers and is the anti-pattern this scenario centres on.',
+    whyWrong: {
+      4: 'Forced deletion is the anti-pattern. Migration by deadline + sign-off works; migration by outage does not.'
+    },
+    source: SRC.governance, tags: ['lifecycle', 'scenario', 'retirement', 'process']
   })
 ];

@@ -362,6 +362,65 @@ export const refSections: RefSection[] = [
     warning: 'Patterns 1, 3, and 5 are SILENT failures — wrong but no error. Performance Analyzer + DAX Studio are the way to catch them.'
   },
   {
+    slug: 'maintain-operations-checklist',
+    title: 'Maintenance & operations checklist',
+    category: 'Maintain solution',
+    paragraphs: [
+      'Operational discipline for a Fabric workload comes down to four things: WHAT is happening (monitoring), HOW much it costs (capacity), WHY it broke (troubleshooting), and HOW to retire safely (lifecycle). The matrix below maps the typical signal to the right tool — wrong tool is the #1 reason teams misdiagnose Fabric issues.'
+    ],
+    table: {
+      headers: ['Signal', 'First-stop tool', 'Confirms', 'Common wrong tool'],
+      rows: [
+        ['"Did the run succeed?"', 'Monitoring hub', 'Status / duration / submitter / item', 'Capacity Metrics (knows cost, not run status)'],
+        ['"Why does it cost so much?"', 'Capacity Metrics app', 'CU% / per-item breakdown / throttling', 'Monitoring hub (no CU breakdown)'],
+        ['"Refresh fails intermittently"', 'Monitoring hub → drill into failed runs', 'Error class buckets across runs', 'Restarting the gateway (destroys evidence)'],
+        ['"Capacity went over 100% CU"', 'Capacity Metrics + smoothing math', 'Burst vs sustained vs throttling threshold', 'Capacity restart (drops every workload)'],
+        ['"Memory error during refresh"', 'XMLA traces + Monitoring hub run details', 'Refresh memory ≈ 2× model size', 'SKU upgrade as first response'],
+        ['"Slow report intermittently"', 'Performance Analyzer + DAX traces (find p99 visuals first)', 'Which visuals are slow, not whether everything is', 'Mode-switching to Import "to rule out"'],
+        ['"Workspace deleted by mistake"', 'Fabric admin portal (within 7-day window)', 'Restorable by tenant admin', 'Re-creating from PBIP (loses run history + sessions)'],
+        ['"Cross-run condition triggers alert"', 'Reflex (Activator) on Eventstream / KQL / model', 'Multi-run conditions, debounce, dedupe', 'Pipeline-level "Notify" (single-run only)']
+      ]
+    },
+    warning: 'The single most common operational anti-pattern is "restart and pray" — restarting the gateway, capacity, or pipeline before capturing the failure evidence. The diagnostic state IS the answer; cancelling the run discards it.'
+  },
+  {
+    slug: 'capacity-throttling-ladder',
+    title: 'Capacity overage → throttling ladder',
+    category: 'Maintain solution',
+    paragraphs: [
+      'When CU% exceeds 100%, Fabric does NOT immediately reject work. The escalation is graduated and predictable. Knowing the order means knowing how much headroom you have before users feel pain.'
+    ],
+    bullets: [
+      '**Bursting** (within smoothing window, default 5 min) — overage is allowed; CU is "borrowed" against future smoothing.',
+      '**Throttling** (smoothing window exhausted) — interactive operations are DELAYED, not rejected. Users see slowness.',
+      '**Background rejection** — scheduled refreshes, dataflows, pipelines start failing.',
+      '**Interactive rejection** — last stage; users get error toasts on report load.',
+      'There is no auto-pause and no auto-upgrade. Recovery is manual: scale up SKU, kill heavy queries, or wait out the overage.',
+      'Pause behavior: pausing the capacity ZEROES capacity billing; OneLake storage continues to bill independently.'
+    ],
+    warning: 'Default smoothing absorbs SHORT bursts (minutes), not 90-minute sustained 130% overages. Sustained overages WILL hit the throttling ladder.'
+  },
+  {
+    slug: 'refresh-memory-rule',
+    title: 'Refresh-time memory ≈ 2× model size',
+    category: 'Maintain solution',
+    paragraphs: [
+      'A semantic-model refresh holds BOTH the old and new copy in memory simultaneously, until the swap is atomic. This means peak memory during refresh is roughly 2× steady-state model size. The exam-relevant arithmetic:'
+    ],
+    table: {
+      headers: ['SKU', 'Steady model ceiling', 'Practical refresh ceiling (~½)', 'Concurrent-query headroom'],
+      rows: [
+        ['F2', '3 GB', '~1.5 GB', 'Tiny'],
+        ['F8', '3 GB', '~1.5 GB', 'Tiny'],
+        ['F32', '10 GB', '~5 GB', 'Small'],
+        ['F64', '25 GB', '~12 GB', 'Moderate'],
+        ['F128', '50 GB', '~25 GB', 'Large'],
+        ['F256', '100 GB', '~50 GB', 'Very large']
+      ]
+    },
+    warning: '"Memory: Allocation failure" on a 12-GB model on F64 is the canonical exam scenario — the model is well under the ceiling but refresh-time peaks (24 GB) plus concurrent-query memory push it over.'
+  },
+  {
     slug: 'last-hour-checklist',
     title: 'Last hour before the exam',
     category: 'Exam strategy',

@@ -8,6 +8,7 @@ import { semanticMore } from './q-semantic-more';
 import { semanticEngineering } from './q-semantic-engineering';
 import { maintain } from './q-maintain';
 import { maintainMore } from './q-maintain-more';
+import { maintainOperations } from './q-maintain-operations';
 import { deploymentDeep } from './q-deployment-deep';
 import { prepareArchitecture } from './q-prepare-arch';
 import { prepareMore } from './q-prepare-more';
@@ -28,6 +29,7 @@ export const qBatches: Question[][] = [
   semanticEngineering,
   maintain,
   maintainMore,
+  maintainOperations,
   deploymentDeep,
   prepareArchitecture,
   prepareMore,
