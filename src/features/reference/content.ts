@@ -362,6 +362,62 @@ export const refSections: RefSection[] = [
     warning: 'Patterns 1, 3, and 5 are SILENT failures — wrong but no error. Performance Analyzer + DAX Studio are the way to catch them.'
   },
   {
+    slug: 'dax-filter-modifier-cheat-sheet',
+    title: 'DAX filter modifiers — when each one wins',
+    category: 'Semantic models',
+    paragraphs: [
+      'CALCULATE filter modifiers are the single most-tested DAX area on DP-600. The cheat sheet below maps the modifier to the question it answers.'
+    ],
+    table: {
+      headers: ['Modifier', 'What it does', 'Use when…', 'Trap'],
+      rows: [
+        ['ALL(table)', 'Removes ALL filters from a table (or a column)', 'Need "% of grand total across all history" or "rank against full set"', 'Wipes too much — see ALLEXCEPT for surgical removal'],
+        ['ALL(column)', 'Removes filters from a single column only', 'Want to clear ONE filter (e.g., Year) but keep Quarter / Month', 'Confuses readers if used inconsistently'],
+        ['ALLEXCEPT(table, columns)', 'Clears every filter on table EXCEPT the named columns', 'Need to keep specific dimensions (Region) and clear everything else', 'Easy to forget; check that you listed every column you want to KEEP'],
+        ['ALLSELECTED(table)', 'Removes filters from iterating-visual context but PRESERVES outer slicers', '"% of slicer-selected total" denominator pattern', 'Outside any visual context behaves like ALL'],
+        ['REMOVEFILTERS', 'Same as ALL but read more clearly as "clear filters"', 'Stylistic alternative to ALL when intent is filter removal', 'Same trap as ALL'],
+        ['KEEPFILTERS(predicate)', 'ADDS the predicate as an INTERSECTION (does NOT replace existing filters)', 'Slicer Color=Blue + measure adds Color=Red → KEEPFILTERS yields empty (correct); without KEEPFILTERS measure overrides slicer', 'Without KEEPFILTERS, slicer is silently overridden'],
+        ['USERELATIONSHIP(fact, dim)', 'Activates an inactive relationship for the CALCULATE duration', 'Sales by Ship Date when active relationship is on Order Date', 'Per-CALCULATE only — does not change the model'],
+        ['CROSSFILTER(fact, dim, Both)', 'Changes filter direction for the CALCULATE', '"Customers who bought product X" — needs filter from Sales back to Customer', 'Bidirectional cross-filter has perf cost; do not enable casually']
+      ]
+    },
+    code: {
+      lang: 'dax',
+      body:
+        '// "% of slicer-selected total" — the canonical use of ALLSELECTED\n' +
+        '% Slicer Total =\n' +
+        '  DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Date)))\n' +
+        '\n' +
+        '// "% of grand total" — use ALL to ignore everything\n' +
+        '% Grand Total =\n' +
+        '  DIVIDE([Total Sales], CALCULATE([Total Sales], ALL(Date)))\n' +
+        '\n' +
+        '// Clear ONE filter (Year) but keep Quarter/Month context\n' +
+        'Total Across Years =\n' +
+        '  CALCULATE([Total Sales], ALL(Date[Year]))\n' +
+        '\n' +
+        '// KEEPFILTERS to intersect with slicer instead of overriding\n' +
+        'Sales Red =\n' +
+        '  CALCULATE([Total Sales], KEEPFILTERS(Product[Color] = "Red"))\n' +
+        '\n' +
+        '// USERELATIONSHIP for inactive relationship per-measure\n' +
+        'Sales by Ship Date =\n' +
+        '  CALCULATE([Total Sales], USERELATIONSHIP(Sales[ShipDate], Date[Date]))\n' +
+        '\n' +
+        '// Time intelligence — requires marked Date table\n' +
+        'Sales LY =\n' +
+        '  CALCULATE([Total Sales], SAMEPERIODLASTYEAR(Date[Date]))\n' +
+        '\n' +
+        '// Rolling 7-day window (anchored to last filtered date)\n' +
+        'Last 7 Days =\n' +
+        '  CALCULATE(\n' +
+        '    [Total Sales],\n' +
+        '    DATESINPERIOD(Date[Date], LASTDATE(Date[Date]), -7, DAY)\n' +
+        '  )\n'
+    },
+    warning: 'CALCULATE filter args evaluate FIRST (any REMOVEFILTERS/KEEPFILTERS), THEN the new filters apply. Order matters: `CALCULATE([X], REMOVEFILTERS(Date), Date[Year]=2026)` clears Date THEN sets Year=2026 — overrides every visual context.'
+  },
+  {
     slug: 'dax-iterators-mental-model',
     title: 'DAX iterators — mental model + canonical traps',
     category: 'Semantic models',

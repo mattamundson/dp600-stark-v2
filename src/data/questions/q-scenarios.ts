@@ -1959,5 +1959,142 @@ export const scenarioQuestions: Question[] = [
       3: 'Storage mode is irrelevant to the predicate-evaluation leak.'
     },
     source: SRC.rls, tags: ['rls', 'scenario', 'mitigation', 'compliance', 'regression']
+  }),
+
+  // ─── scn-43 — Boltware ALL vs ALLSELECTED (3 Qs) ──────────────
+  single({
+    id: 'scn-43-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'dax-context', difficulty: 4,
+    scenarioId: 'scn-43', scenarioTitle: 'Boltware Tools ALL vs ALLSELECTED dispute',
+    prompt: 'Which expression matches the PM\'s requirement (% of slicer-selected total)?',
+    options: [
+      'DIVIDE([Total Sales], CALCULATE([Total Sales], ALL(Date)))',
+      'DIVIDE([Total Sales], CALCULATE([Total Sales], ALLSELECTED(Date)))',
+      'DIVIDE([Total Sales], CALCULATE([Total Sales], REMOVEFILTERS(Date)))',
+      'DIVIDE([Total Sales], [Total Sales])'
+    ],
+    correct: 1,
+    explanation: 'ALLSELECTED preserves slicer filters and removes only the iterating-visual context (the matrix quarter split). The denominator becomes "Total Sales across the selected years, regardless of which quarter cell". Quarters then sum to 100% within the slicer.',
+    whyWrong: {
+      0: 'ALL ignores the slicer — denominator is full history.',
+      2: 'REMOVEFILTERS ≡ ALL — same problem.',
+      3: 'Always returns 1.'
+    },
+    source: SRC.daxFunctions, tags: ['dax-context', 'scenario', 'allselected']
+  }),
+  single({
+    id: 'scn-43-q2', type: 'scenario-single', domain: 'semantic', subtopic: 'dax-context', difficulty: 4,
+    scenarioId: 'scn-43', scenarioTitle: 'Boltware Tools ALL vs ALLSELECTED dispute',
+    prompt: 'Dev A\'s ALL approach gives a result that sums to less than 100% in the matrix. Why?',
+    options: [
+      'The denominator is the full-history total; numerators are slicer-restricted, so percentages sum to a portion of total — not 100%',
+      'ALL is broken in DAX',
+      'Slicers ignore ALL completely',
+      'The matrix has a bug'
+    ],
+    correct: 0,
+    explanation: 'Numerator is slicer-restricted (selected years). Denominator with ALL ignores the slicer and reaches across all history. Numerator < denominator → sum of percentages < 100% by exactly the share of total NOT in the slicer years.',
+    whyWrong: {
+      1: 'Working as designed.',
+      2: 'Slicers do not "ignore ALL" — ALL ignores the slicer.',
+      3: 'Math is correct.'
+    },
+    source: SRC.daxFunctions, tags: ['dax-context', 'scenario', 'all', 'denominator-mismatch']
+  }),
+  multi({
+    id: 'scn-43-q3', type: 'scenario-multi', domain: 'semantic', subtopic: 'dax-context', difficulty: 5,
+    scenarioId: 'scn-43', scenarioTitle: 'Boltware Tools ALL vs ALLSELECTED dispute',
+    prompt: 'Which design considerations are TRUE for choosing between ALL, ALLSELECTED, and REMOVEFILTERS in this scenario? Select all that apply.',
+    options: [
+      'ALL = "ignore everything outside CALCULATE filter args" — useful for share-of-grand-total',
+      'ALLSELECTED = "preserve user-selected filters" — useful for share-of-slicer-selection',
+      'REMOVEFILTERS = ALL when used as a filter modifier; the difference is stylistic',
+      'KEEPFILTERS preserves the matrix-cell context AND adds the new filter — opposite of ALLSELECTED',
+      'For "% of grand total within current visual" pick ALLSELECTED with a parameter rule'
+    ],
+    correct: [0, 1, 2, 3],
+    explanation: 'Four real distinctions: ALL (1), ALLSELECTED (2), REMOVEFILTERS as a stylistic ALL (3), KEEPFILTERS as the opposite intent (4). (5) is wrong — parameter rules are deployment-pipeline mechanics, unrelated to DAX filter modifiers.',
+    whyWrong: {
+      4: 'Parameter rules belong to deployment pipelines; they have no role in DAX filter selection.'
+    },
+    source: SRC.daxFunctions, tags: ['dax-context', 'scenario', 'design-decision']
+  }),
+
+  // ─── scn-44 — Westeros OrderDate vs ShipDate (2 Qs) ──────────
+  single({
+    id: 'scn-44-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'relationships', difficulty: 4,
+    scenarioId: 'scn-44', scenarioTitle: 'Westeros Logistics OrderDate vs ShipDate',
+    prompt: 'What is the non-destructive pattern the architect proposes?',
+    options: [
+      'Switch the active relationship to ShipDate for the whole model',
+      'Create a SECOND measure `Sales by Ship Date := CALCULATE([Total Sales], USERELATIONSHIP(Sales[ShipDate], Date[Date]))` — keeps OrderDate as the active relationship for [Total Sales]',
+      'Duplicate the Date table to use one per relationship',
+      'Remove the inactive relationship entirely'
+    ],
+    correct: 1,
+    explanation: 'USERELATIONSHIP is per-CALCULATE — it activates the inactive relationship for the duration of one expression. Both views co-exist on the same page without a destructive model change. Duplicating the Date table (3) is a different pattern that works but adds maintenance overhead.',
+    whyWrong: {
+      0: 'Switching the active relationship breaks every existing OrderDate measure.',
+      2: 'Duplicate Date table works but is unnecessary maintenance.',
+      3: 'Removing the inactive relationship eliminates ShipDate analysis entirely.'
+    },
+    source: SRC.daxFunctions, tags: ['relationships', 'scenario', 'userelationship', 'pattern']
+  }),
+  multi({
+    id: 'scn-44-q2', type: 'scenario-multi', domain: 'semantic', subtopic: 'relationships', difficulty: 4,
+    scenarioId: 'scn-44', scenarioTitle: 'Westeros Logistics OrderDate vs ShipDate',
+    prompt: 'Which statements about USERELATIONSHIP behavior are TRUE in this design? Select all that apply.',
+    options: [
+      'USERELATIONSHIP scope is only the CALCULATE call',
+      'The model file is unchanged — no edit required',
+      'Other measures (`[Total Sales]`) continue using the active OrderDate relationship',
+      'The new measure works in any visual that filters on Date',
+      'USERELATIONSHIP changes which relationship is active for the entire query plan'
+    ],
+    correct: [0, 1, 2, 3],
+    explanation: 'Four correct: per-CALCULATE scope (1), no model edit (2), other measures unaffected (3), works in any Date-filtered visual (4). (5) is wrong — USERELATIONSHIP scope is the CALCULATE, not the entire query plan.',
+    whyWrong: {
+      4: 'USERELATIONSHIP is bounded to its CALCULATE; outside that, the active relationship rules.'
+    },
+    source: SRC.daxFunctions, tags: ['relationships', 'scenario', 'userelationship', 'scope']
+  }),
+
+  // ─── scn-45 — Sterling cardinality blowup (2 Qs) ──────────────
+  single({
+    id: 'scn-45-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'dax-perf', difficulty: 5,
+    scenarioId: 'scn-45', scenarioTitle: 'Sterling Foods VertiPaq cardinality blowup',
+    prompt: 'OrderTimestampMs has 320M unique values consuming 2.4 GB. What is the MOST effective column-redesign action?',
+    options: [
+      'Change the column to STRING data type',
+      'Truncate the timestamp to seconds (or whatever granularity actually matters) — cardinality drops by 1000× immediately',
+      'Move the column to a separate table',
+      'Remove all measures using OrderTimestampMs'
+    ],
+    correct: 1,
+    explanation: 'The "millisecond since order" metric likely does not need millisecond granularity. Truncating to seconds reduces cardinality by ~1000× (and dictionary size accordingly). If second-level still blows up, truncate to minute, etc. Match granularity to actual user need.',
+    whyWrong: {
+      0: 'String compresses worse at this cardinality.',
+      2: 'Splitting tables does not change column cardinality.',
+      3: 'Removing measures hides usage but leaves the column.'
+    },
+    source: SRC.daxPerf, tags: ['dax-perf', 'scenario', 'cardinality', 'truncation']
+  }),
+  multi({
+    id: 'scn-45-q2', type: 'scenario-multi', domain: 'semantic', subtopic: 'dax-perf', difficulty: 5,
+    scenarioId: 'scn-45', scenarioTitle: 'Sterling Foods VertiPaq cardinality blowup',
+    prompt: 'Beyond the timestamp truncation, which OTHER actions would help cut model size? Select all that apply.',
+    options: [
+      'Drop columns not referenced by ANY measure or visual (audit via VertiPaq Analyzer)',
+      'Apply OPTIMIZE + VACUUM on the underlying Delta tables',
+      'Move calculated columns upstream into the Lakehouse Silver layer (eliminates DAX-evaluated columns from the model)',
+      'Disable V-Order to "save build time"',
+      'Reduce the number of partitions on the fact to a single one'
+    ],
+    correct: [0, 1, 2],
+    explanation: 'Three real wins: drop unused columns (1), OPTIMIZE/VACUUM Delta files (2), push calc columns upstream (3). Disabling V-Order INCREASES query cost (and is the wrong direction for size); single-partition fact (5) hurts Direct Lake parallelism without saving size.',
+    whyWrong: {
+      3: 'V-Order benefits compression and query cost. Do not disable.',
+      4: 'Single-partition is an anti-pattern for Direct Lake.'
+    },
+    source: SRC.daxPerf, tags: ['dax-perf', 'scenario', 'model-size', 'optimize-vacuum', 'unused-columns']
   })
 ];

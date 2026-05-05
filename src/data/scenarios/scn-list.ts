@@ -515,5 +515,43 @@ export const scenarioBatch: Scenario[] = [
       'Some Sales rows have NULL CustomerKey (data-quality issue). The architect must explain the leak and design the guard.',
     questionIds: ['scn-42-q1', 'scn-42-q2'],
     tags: ['rls', 'lookupvalue', 'blank-handling', 'compliance', 'security-gap']
+  },
+  // ── DAX traps + context lab (3 scenarios, 7 questions) ────────
+  {
+    id: 'scn-43',
+    title: 'Boltware Tools ALL vs ALLSELECTED dispute',
+    domain: 'semantic',
+    business: 'Boltware Tools — sales dashboard with a year slicer + quarterly matrix',
+    prompt:
+      'Two team members debate the "% of Total" denominator. Dev A wrote `DIVIDE([Total Sales], CALCULATE([Total Sales], ALL(Date)))` ' +
+      'so percentages sum to 100% across all-time history. Dev B argues the slicer (years 2025-2026) should constrain the denominator so percentages ' +
+      'sum to 100% across the slicer-selected years. The product manager wants the matrix to show "% of slicer-selected total" so quarters within the ' +
+      'selected years sum to 100%.',
+    questionIds: ['scn-43-q1', 'scn-43-q2', 'scn-43-q3'],
+    tags: ['dax-context', 'all', 'allselected', 'percent-of-total', 'design-debate']
+  },
+  {
+    id: 'scn-44',
+    title: 'Westeros Logistics OrderDate vs ShipDate',
+    domain: 'semantic',
+    business: 'Westeros Logistics — fulfillment dashboard with two date dimensions',
+    prompt:
+      'A model has Sales joined to Date on TWO relationships: ACTIVE on `OrderDate`, INACTIVE on `ShipDate`. Operations needs both views simultaneously: ' +
+      '"Sales by Order Date" and "Sales by Ship Date" in adjacent visuals on the same page. The dev wrote ALL measures as `[Total Sales]` and is now ' +
+      'trying to switch the model to make ShipDate the active relationship — the architect intervenes with a non-destructive pattern.',
+    questionIds: ['scn-44-q1', 'scn-44-q2'],
+    tags: ['relationships', 'userelationship', 'inactive-relationship', 'design-pattern']
+  },
+  {
+    id: 'scn-45',
+    title: 'Sterling Foods VertiPaq cardinality blowup',
+    domain: 'semantic',
+    business: 'Sterling Foods — F64 capacity, 8GB Direct Lake on Warehouse model',
+    prompt:
+      'VertiPaq Analyzer shows: Sales fact 480M rows, total dictionary size 7.2 GB. ONE column (Sales[OrderTimestampMs]) has 320M unique values and ' +
+      'consumes 2.4 GB of dictionary alone. The column was added to support a "milliseconds since order" metric. The team wants to keep the metric but ' +
+      'cut model size in half before next refresh. Architect proposes a column-redesign approach.',
+    questionIds: ['scn-45-q1', 'scn-45-q2'],
+    tags: ['dax-perf', 'vertipaq', 'cardinality', 'dictionary', 'column-redesign']
   }
 ];
