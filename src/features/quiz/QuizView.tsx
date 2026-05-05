@@ -3,9 +3,10 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { QuestionPlayer, type PlayerAnswer, type ResultDisplay } from '../../components/QuestionPlayer';
 import { questionBank, questionById } from '../../data/questions';
 import { listAttempts } from '../../lib/storage/db';
-import { startSession, answerQuestion, finishSession, targetSize, type AnswerInput } from './session';
+import { startSession, answerQuestion, finishSession, targetSize, emphasisDecrementPatch, type AnswerInput } from './session';
 import type { Attempt, Session, SessionResult } from '../../lib/schema';
 import { useToast } from '../../app/providers/ToastProvider';
+import { useSettings } from '../../app/providers/SettingsProvider';
 
 type Mode = 'quiz-10' | 'quiz-25' | 'quiz-50';
 
@@ -26,12 +27,14 @@ export function QuizView() {
   const [tStart, setTStart] = useState<number>(Date.now());
   const [done, setDone] = useState<SessionResult | null>(null);
   const { push } = useToast();
+  const { settings, patch } = useSettings();
 
   useEffect(() => {
     let alive = true;
+    if (!settings) return;
     void listAttempts().then((all) => {
       if (!alive) return;
-      const s = startSession({ bank: questionBank, attempts: all, mode });
+      const s = startSession({ bank: questionBank, attempts: all, mode, settings });
       if (s.questionIds.length === 0) {
         push('Question bank is empty — Phase 4 content not yet seeded.', 'warn');
       }
@@ -41,9 +44,17 @@ export function QuizView() {
       setVerdict(null);
       setDone(null);
       setTStart(Date.now());
+      // Decrement emphasis-mode usage AFTER the session is built so this session
+      // benefits from the skew, then the count rolls down for the next one.
+      const decPatch = emphasisDecrementPatch(settings);
+      if (decPatch) void patch(decPatch);
     });
     return () => { alive = false; };
-  }, [mode]);
+    // settings.emphasisMode is read-by-value at session-build time; depending on
+    // the full `settings` object would re-trigger on every patch including
+    // theme/reduceMotion. We intentionally only re-run on `mode` change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, settings?.startedAtIso]);
 
   const cur = session ? questionById(session.questionIds[cursor]) : null;
   const total = session?.questionIds.length ?? 0;

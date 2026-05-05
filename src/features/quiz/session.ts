@@ -8,7 +8,8 @@ import type {
   Question,
   Session,
   SessionMode,
-  SessionResult
+  SessionResult,
+  Settings
 } from '../../lib/schema';
 import { gradeAnswer, summarizeSession } from '../../lib/scoring/score';
 import { buildQuiz } from './engine';
@@ -19,6 +20,21 @@ export interface NewSessionOpts {
   attempts: Attempt[];
   mode: Extract<SessionMode, 'quiz-10' | 'quiz-25' | 'quiz-50' | 'remediation-10' | 'remediation-15' | 'remediation-20'>;
   questionIds?: string[]; // if pre-built (e.g., remediation engine)
+  settings?: Settings; // for emphasisMode skew in buildQuiz
+}
+
+/**
+ * If emphasisMode is currently live, return the patch the caller should persist
+ * to decrement sessionsRemaining (or clear when it would hit 0). Returns `null`
+ * when no patch is needed. Pure — caller owns the persistence call.
+ */
+export function emphasisDecrementPatch(settings: Settings | null | undefined): Partial<Settings> | null {
+  const em = settings?.emphasisMode;
+  if (!em) return null;
+  if (em.expiresAt <= Date.now()) return { emphasisMode: undefined };
+  if (em.sessionsRemaining <= 0) return { emphasisMode: undefined };
+  if (em.sessionsRemaining === 1) return { emphasisMode: undefined };
+  return { emphasisMode: { ...em, sessionsRemaining: em.sessionsRemaining - 1 } };
 }
 
 export function targetSize(mode: NewSessionOpts['mode']): number {
@@ -35,7 +51,8 @@ export function targetSize(mode: NewSessionOpts['mode']): number {
 export function startSession(opts: NewSessionOpts): Session {
   const ids = opts.questionIds ?? buildQuiz(opts.bank, opts.attempts, {
     size: targetSize(opts.mode),
-    seed: Date.now() & 0xffffffff
+    seed: Date.now() & 0xffffffff,
+    settings: opts.settings
   });
   return {
     id: uid(opts.mode),

@@ -38,13 +38,15 @@ export interface BuildOpts {
   mode?: 'adaptive' | 'simulation';
   /** restrict to scenario? */
   scenarioId?: string;
+  /** user settings — read for emphasisMode skew. Simulation ignores emphasis (real exam mix). */
+  settings?: Settings;
 }
 
 export function buildQuiz(bank: Question[], attempts: Attempt[], opts: BuildOpts): string[] {
   const pool = opts.scenarioId ? bank.filter((q) => q.scenarioId === opts.scenarioId) : bank.filter((q) => !q.scenarioId || opts.mode === 'simulation');
   if (!pool.length) return [];
 
-  const targets = stratifiedTargets(opts.size);
+  const targets = stratifiedTargets(opts.size, opts.mode === 'simulation' ? undefined : opts.settings);
   const weak = weakSpots(attempts);
   const lastSeen = lastSeenMap(attempts);
   const seenCount = seenCountMap(attempts);
