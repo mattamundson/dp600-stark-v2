@@ -8,6 +8,7 @@ import { QuestionPlayer, type PlayerAnswer, type ResultDisplay } from '../../com
 import { questionBank, questionById } from '../../data/questions';
 import { listAttempts } from '../../lib/storage/db';
 import { startSession, answerQuestion, finishSession, type AnswerInput } from '../quiz/session';
+import { subtopicChildren } from '../remediation/engine';
 import type { Attempt, Question, Session, SessionResult } from '../../lib/schema';
 import { useToast } from '../../app/providers/ToastProvider';
 
@@ -18,8 +19,10 @@ interface SubtopicStat {
   accuracy: number;
 }
 
+const DIRECT_LAKE_SUBTOPICS = new Set(subtopicChildren('direct-lake'));
+
 function isDirectLakeSubtopic(s: string): boolean {
-  return s.startsWith('direct-lake');
+  return DIRECT_LAKE_SUBTOPICS.has(s);
 }
 
 function summarizeBySubtopic(attempts: Attempt[]): SubtopicStat[] {

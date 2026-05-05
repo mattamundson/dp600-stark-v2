@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { listAttempts } from '../../lib/storage/db';
 import { questionBank, questionById } from '../../data/questions';
-import { buildRemediation, weakSpots } from './engine';
+import { buildRemediation, weakSpots, subtopicChildren } from './engine';
 import { startSession, answerQuestion, finishSession, type AnswerInput } from '../quiz/session';
 import { QuestionPlayer, type PlayerAnswer, type ResultDisplay } from '../../components/QuestionPlayer';
 import type { Attempt, Session, SessionResult, WeakSpot } from '../../lib/schema';
@@ -31,8 +31,10 @@ export function RemediationView() {
 
   function start(n: Size, subtopic?: string) {
     setSize(n);
-    const filteredBank = subtopic ? questionBank.filter((q) => q.subtopic === subtopic) : questionBank;
-    const filteredAttempts = subtopic ? attempts.filter((a) => a.subtopic === subtopic) : attempts;
+    // When subtopic is a parent bucket (e.g., 'direct-lake'), expand to children.
+    const expanded = subtopic ? new Set(subtopicChildren(subtopic)) : null;
+    const filteredBank = expanded ? questionBank.filter((q) => expanded.has(q.subtopic)) : questionBank;
+    const filteredAttempts = expanded ? attempts.filter((a) => expanded.has(a.subtopic)) : attempts;
     // Fall back to the full bank if the subtopic filter starves the pool.
     const effectiveBank = filteredBank.length >= n ? filteredBank : questionBank;
     const effectiveAttempts = filteredBank.length >= n ? filteredAttempts : attempts;

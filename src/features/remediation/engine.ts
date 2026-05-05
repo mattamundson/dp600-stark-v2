@@ -26,6 +26,35 @@
 import type { Attempt, Question, WeakSpot } from '../../lib/schema';
 import { clamp } from '../../lib/utils/arr';
 
+/**
+ * Subtopic-to-parent rollup. Wave 2 introduced finer Direct Lake slugs
+ * (`direct-lake-fallback`, `direct-lake-framing`, etc.) but historical
+ * attempts on `'direct-lake'` would otherwise live in their own bucket
+ * away from the new finer-grained mistakes. Rollup means analytics see
+ * one "direct-lake" weak spot, but drill remediation can still target
+ * the parent (which expands to all children at filter time).
+ *
+ * Slugs absent from this map roll up to themselves (no-op).
+ */
+export const SUBTOPIC_GROUPS: Record<string, string> = {
+  'direct-lake-fallback': 'direct-lake',
+  'direct-lake-framing': 'direct-lake',
+  'direct-lake-onelake': 'direct-lake',
+  'direct-lake-cache': 'direct-lake'
+};
+
+export function subtopicBucket(s: string): string {
+  return SUBTOPIC_GROUPS[s] ?? s;
+}
+
+/** Subtopic union helper: when `s` is a parent bucket, return all child slugs that roll up to it (plus the parent itself). */
+export function subtopicChildren(s: string): string[] {
+  const children = Object.entries(SUBTOPIC_GROUPS)
+    .filter(([, parent]) => parent === s)
+    .map(([child]) => child);
+  return children.length ? [s, ...children] : [s];
+}
+
 export const REM_WEIGHTS = {
   accuracy: 0.45,
   confidence: 0.30,
@@ -51,7 +80,7 @@ export function weakSpots(attempts: Attempt[]): WeakSpot[] {
   if (!attempts.length) return [];
   const buckets: Record<string, Attempt[]> = {};
   for (const a of attempts) {
-    const k = a.subtopic;
+    const k = subtopicBucket(a.subtopic);
     buckets[k] ||= [];
     buckets[k].push(a);
   }
@@ -159,7 +188,8 @@ function pickCandidate(
   lastSeen: Map<string, number>,
   pass: number
 ): string | null {
-  const subPool = bank.filter((q) => q.subtopic === subtopic && !q.scenarioId && !used.has(q.id));
+  const expanded = new Set(subtopicChildren(subtopic));
+  const subPool = bank.filter((q) => expanded.has(q.subtopic) && !q.scenarioId && !used.has(q.id));
   if (!subPool.length) return null;
 
   // pass 0: prefer recently-wrong; pass 1: prefer unseen; pass 2+: any

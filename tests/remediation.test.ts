@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { weakSpots, buildRemediation } from '../src/features/remediation/engine';
+import { weakSpots, buildRemediation, subtopicBucket, subtopicChildren } from '../src/features/remediation/engine';
 import type { Attempt, Question } from '../src/lib/schema';
 
 function mkQ(id: string, sub: string, dom: Question['domain'] = 'semantic'): Question {
@@ -68,5 +68,70 @@ describe('buildRemediation', () => {
     const ids = buildRemediation(big, [], { size: 15 });
     expect(ids.length).toBe(15);
     expect(new Set(ids).size).toBe(15);
+  });
+});
+
+describe('subtopic taxonomy rollup', () => {
+  test('child Direct Lake slugs roll up to direct-lake parent', () => {
+    expect(subtopicBucket('direct-lake-fallback')).toBe('direct-lake');
+    expect(subtopicBucket('direct-lake-framing')).toBe('direct-lake');
+    expect(subtopicBucket('direct-lake-onelake')).toBe('direct-lake');
+    expect(subtopicBucket('direct-lake-cache')).toBe('direct-lake');
+    expect(subtopicBucket('direct-lake')).toBe('direct-lake');
+  });
+
+  test('unrelated subtopics map to themselves', () => {
+    expect(subtopicBucket('kql')).toBe('kql');
+    expect(subtopicBucket('deployment-pipelines')).toBe('deployment-pipelines');
+    expect(subtopicBucket('totally-new-subtopic')).toBe('totally-new-subtopic');
+  });
+
+  test('subtopicChildren expands parent to all children + self', () => {
+    const expanded = subtopicChildren('direct-lake');
+    expect(expanded).toContain('direct-lake');
+    expect(expanded).toContain('direct-lake-fallback');
+    expect(expanded).toContain('direct-lake-framing');
+    expect(expanded).toContain('direct-lake-onelake');
+    expect(expanded).toContain('direct-lake-cache');
+    expect(expanded.length).toBe(5);
+  });
+
+  test('subtopicChildren on a leaf returns just itself', () => {
+    expect(subtopicChildren('kql')).toEqual(['kql']);
+  });
+
+  test('weakSpots aggregates child slugs under parent bucket', () => {
+    const a: Attempt[] = [
+      mkAttempt('q1', 'direct-lake', false, 'sure'),
+      mkAttempt('q2', 'direct-lake-fallback', false, 'sure'),
+      mkAttempt('q3', 'direct-lake-framing', false, 'sure'),
+      mkAttempt('q4', 'direct-lake-onelake', false, 'sure')
+    ];
+    const spots = weakSpots(a);
+    // All four child + parent attempts should bucket into one row
+    const dl = spots.filter((s) => s.subtopic === 'direct-lake');
+    expect(dl).toHaveLength(1);
+    expect(dl[0].attempts).toBe(4);
+    expect(spots.filter((s) => s.subtopic === 'direct-lake-fallback')).toHaveLength(0);
+  });
+
+  test('buildRemediation drilling parent expands to children', () => {
+    const bank: Question[] = [
+      mkQ('p1', 'direct-lake'),
+      mkQ('p2', 'direct-lake-fallback'),
+      mkQ('p3', 'direct-lake-framing'),
+      mkQ('p4', 'direct-lake-onelake'),
+      mkQ('p5', 'kql')
+    ];
+    const attempts: Attempt[] = [
+      mkAttempt('p1', 'direct-lake', false, 'sure'),
+      mkAttempt('p2', 'direct-lake-fallback', false, 'sure'),
+      mkAttempt('p3', 'direct-lake-framing', false, 'sure'),
+      mkAttempt('p4', 'direct-lake-onelake', false, 'sure')
+    ];
+    const ids = buildRemediation(bank, attempts, { size: 4 });
+    // All 4 picks should come from the direct-lake family — p5 (kql) should not surface
+    expect(ids).not.toContain('p5');
+    expect(ids.length).toBeGreaterThan(0);
   });
 });
