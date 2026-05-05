@@ -11,6 +11,7 @@ import { deploymentDeep } from './q-deployment-deep';
 import { prepareArchitecture } from './q-prepare-arch';
 import { prepareMore } from './q-prepare-more';
 import { prepareLab } from './q-prepare-lab';
+import { qPrepareBlueprintFill } from './q-prepare-blueprint-fill';
 import { kqlDeep } from './q-kql-deep';
 import { reinforcement } from './q-reinforcement';
 import { scenarioQuestions } from './q-scenarios';
@@ -29,6 +30,7 @@ export const qBatches: Question[][] = [
   prepareArchitecture,
   prepareMore,
   prepareLab,
+  qPrepareBlueprintFill,
   kqlDeep,
   reinforcement,
   scenarioQuestions,
