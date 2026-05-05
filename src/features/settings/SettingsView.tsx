@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../app/providers/SettingsProvider';
 import { useToast } from '../../app/providers/ToastProvider';
 import { exportAll, importAll, ImportError, wipeAll } from '../../lib/storage/db';
+import { questionBank } from '../../data/questions';
+import { csvFile, downloadCsv } from '../../lib/utils/csv';
 
 export function SettingsView() {
   const { settings, patch } = useSettings();
@@ -27,6 +29,37 @@ export function SettingsView() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     push('Exported study data', 'ok');
+  }
+
+  function doExportBankCsv() {
+    const headers = [
+      'id', 'type', 'domain', 'subtopic', 'difficulty', 'prompt',
+      'options', 'correctOptionIds', 'correctOrder', 'explanation',
+      'whyWrong', 'tags', 'scenarioId', 'scenarioTitle', 'relatedIds',
+      'sourceCategory', 'sourceNote'
+    ];
+    const rows = questionBank.map((q) => [
+      q.id,
+      q.type,
+      q.domain,
+      q.subtopic,
+      q.difficulty,
+      q.prompt,
+      (q.options ?? []).map((o) => `${o.id}: ${o.text}`).join(' | '),
+      (q.correctOptionIds ?? []).join(','),
+      (q.correctOrder ?? []).join(','),
+      q.explanation,
+      Object.entries(q.whyWrong ?? {}).map(([k, v]) => `${k}: ${v}`).join(' | '),
+      q.tags.join(','),
+      q.scenarioId ?? '',
+      q.scenarioTitle ?? '',
+      (q.relatedIds ?? []).join(','),
+      q.sourceAnchor.category,
+      q.sourceAnchor.note
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    downloadCsv(`dp600-stark-bank-${today}.csv`, csvFile(headers, rows));
+    push(`Exported ${questionBank.length} questions to CSV`, 'ok');
   }
 
   async function onImportFile(file: File) {
@@ -102,6 +135,7 @@ export function SettingsView() {
         <div className="flex flex-wrap gap-2">
           <button className="btn btn-primary" onClick={() => void doExport()}>Export JSON</button>
           <button className="btn" onClick={() => fileRef.current?.click()}>Import JSON</button>
+          <button className="btn" onClick={doExportBankCsv}>Export bank CSV</button>
           <button className="btn btn-danger" onClick={() => void doWipe()}>Wipe all data</button>
           <input
             ref={fileRef}
@@ -116,7 +150,8 @@ export function SettingsView() {
           />
         </div>
         <p className="mt-3 text-xs text-faint">
-          Exports include settings, sessions, attempts, and SRS state. Import replaces existing data.
+          JSON export includes settings, sessions, attempts, and SRS state — Import replaces existing data.
+          Bank CSV exports the question bank only (id, prompt, options, answers, explanation) for peer review and audit.
         </p>
       </section>
     </div>
