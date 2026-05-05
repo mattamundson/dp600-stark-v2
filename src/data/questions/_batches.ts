@@ -19,9 +19,19 @@ import { qPrepareBlueprintFill } from './q-prepare-blueprint-fill';
 import { kqlDeep } from './q-kql-deep';
 import { daxIterators } from './q-dax-iterators';
 import { daxTraps } from './q-dax-traps';
+import { rlsDaxSamples } from './q-rls-dax-samples';
+import { calcGroups } from './q-calc-groups';
 import { reinforcement } from './q-reinforcement';
 import { scenarioQuestions } from './q-scenarios';
 import { typeSupplement } from './q-type-supplement';
+import { rlsTesting } from './q-rls-testing';
+import { medallion } from './q-medallion';
+import { governanceLifecycle } from './q-governance-lifecycle';
+import { semanticPerf } from './q-semantic-perf';
+import { starSchema } from './q-star-schema';
+import { fabricNotebooks } from './q-fabric-notebooks';
+import { maintainDeep } from './q-maintain-deep';
+import { fabricCli } from './q-fabric-cli';
 
 export const qBatches: Question[][] = [
   directLake,
@@ -44,7 +54,17 @@ export const qBatches: Question[][] = [
   kqlDeep,
   daxIterators,
   daxTraps,
+  rlsDaxSamples,
+  calcGroups,
   reinforcement,
   scenarioQuestions,
-  typeSupplement
+  typeSupplement,
+  rlsTesting,
+  medallion,
+  governanceLifecycle,
+  semanticPerf,
+  starSchema,
+  fabricNotebooks,
+  maintainDeep,
+  fabricCli
 ];
