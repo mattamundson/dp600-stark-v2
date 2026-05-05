@@ -17,6 +17,8 @@ import { ComponentPickerView } from '../features/lab/ComponentPickerView';
 import { KqlDrillView } from '../features/lab/KqlDrillView';
 import { Last72HoursView } from '../features/cockpit/Last72HoursView';
 import { SimulationViewV2 } from '../features/simulation/SimulationViewV2';
+import { CheatSheetView } from '../features/cheat-sheet/CheatSheetView';
+import { MissedPatternsView } from '../features/analytics/MissedPatternsView';
 
 export function App() {
   return (
@@ -41,6 +43,8 @@ export function App() {
         <Route path="/lab/kql-drill" element={<KqlDrillView />} />
         <Route path="/cockpit" element={<Last72HoursView />} />
         <Route path="/simulation-v2" element={<SimulationViewV2 />} />
+        <Route path="/cheat-sheet" element={<CheatSheetView />} />
+        <Route path="/missed" element={<MissedPatternsView />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

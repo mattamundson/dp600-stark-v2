@@ -36,6 +36,8 @@ import { workspaceGovernance } from './q-workspace-governance';
 import { scenarioQuestionsBatch2 } from './q-scenarios-batch2';
 import { kqlAdvanced } from './q-kql-advanced';
 import { toolingPbi } from './q-tooling-pbi';
+import { compositeAggs } from './q-composite-aggs';
+import { scenarioQuestionsBatch3 } from './q-scenarios-batch3';
 
 export const qBatches: Question[][] = [
   directLake,
@@ -74,5 +76,7 @@ export const qBatches: Question[][] = [
   workspaceGovernance,
   scenarioQuestionsBatch2,
   kqlAdvanced,
-  toolingPbi
+  toolingPbi,
+  compositeAggs,
+  scenarioQuestionsBatch3
 ];
