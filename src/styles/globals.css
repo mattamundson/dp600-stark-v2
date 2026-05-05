@@ -104,3 +104,131 @@
     @apply w-full rounded-xl border border-border bg-surface2 px-3 py-2 text-sm text-text placeholder:text-faint focus:border-primary/60 focus:outline-none;
   }
 }
+
+/* Print stylesheet — optimized for /reference exam-prep cheat sheet.
+   Strategy: hide chrome (sidebar, mobile bar, modals, buttons, search box),
+   force light tokens, kill backgrounds/shadows/gradients, keep each section
+   together on a page, render code blocks as legible monospace blocks. */
+@media print {
+  :root {
+    --bg: 255 255 255;
+    --surface: 255 255 255;
+    --surface2: 255 255 255;
+    --surface3: 245 245 245;
+    --border: 180 180 180;
+    --text: 0 0 0;
+    --muted: 51 51 51;
+    --faint: 90 90 90;
+    --primary: 0 0 0;
+    --cyan: 0 0 0;
+    --green: 0 0 0;
+    --amber: 0 0 0;
+    --red: 0 0 0;
+    color-scheme: light;
+  }
+
+  @page { margin: 0.5in; }
+
+  html, body {
+    background: white !important;
+    color: black !important;
+  }
+  body {
+    background-image: none !important;
+    background-attachment: initial !important;
+  }
+
+  /* Hide app chrome: sidebar, mobile nav, modals, search, theme toggle, all buttons. */
+  aside,
+  nav[aria-label="Primary"],
+  nav[aria-label="Mobile navigation"],
+  [role="dialog"],
+  .fixed,
+  button,
+  .btn,
+  .input,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Layout grid → single column, no padding-bottom for mobile bar. */
+  body > div,
+  main {
+    display: block !important;
+    grid-template-columns: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    min-height: 0 !important;
+  }
+
+  /* Section cards → simple flat blocks, kept together across pages. */
+  .panel,
+  .panel-tight {
+    background: white !important;
+    border: 1px solid rgb(180, 180, 180) !important;
+    box-shadow: none !important;
+    padding: 12px !important;
+    margin-bottom: 10px !important;
+    border-radius: 4px !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Headings start a fresh block, never orphaned at page bottom. */
+  h1, h2, h3, h4 {
+    color: black !important;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Reference sheet header → strip the "search + categories" chrome row. */
+  header.panel > .mt-3 { display: none !important; }
+
+  /* Tables → readable borders, no horizontal scrollbar. */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+  table th, table td {
+    border: 1px solid rgb(180, 180, 180) !important;
+    padding: 4px 6px !important;
+    color: black !important;
+    background: white !important;
+  }
+  .overflow-x-auto { overflow: visible !important; }
+
+  /* Code blocks → readable monospace on light grey. */
+  pre, code, .kbd {
+    background: rgb(245, 245, 245) !important;
+    color: black !important;
+    border: 1px solid rgb(200, 200, 200) !important;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+  }
+
+  /* Warnings → outlined block, no color tint (color cartridges). */
+  .text-warn, .border-warn\/40, .bg-warn\/10 {
+    color: black !important;
+    border-color: rgb(120, 120, 120) !important;
+    background: rgb(248, 248, 248) !important;
+  }
+
+  /* Flatten <details> so collapsed content prints. */
+  details > summary { display: list-item; }
+  details:not([open]) > *:not(summary) {
+    display: block !important;
+  }
+
+  /* Links: show URL after text in print. */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 0.85em;
+    color: rgb(90, 90, 90);
+  }
+
+  /* Body text: ensure muted text is still readable on paper. */
+  .text-muted, .text-faint {
+    color: rgb(51, 51, 51) !important;
+  }
+}

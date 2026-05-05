@@ -19,8 +19,20 @@ export function ReferenceView() {
   return (
     <div className="flex flex-col gap-4">
       <header className="panel">
-        <h1 className="text-2xl font-bold">Reference sheet</h1>
-        <p className="text-muted">Mechanics, comparisons, and traps. Searchable; print-friendly.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold">Reference sheet</h1>
+            <p className="text-muted">Mechanics, comparisons, and traps. Searchable; print-friendly.</p>
+          </div>
+          <button
+            type="button"
+            className="btn"
+            onClick={() => window.print()}
+            title="Print or save as PDF (Ctrl+P)"
+          >
+            Print / PDF
+          </button>
+        </div>
         <div className="mt-3">
           <input className="input" placeholder="Search (e.g. ‘framing’, ‘RLS’, ‘pipeline’)…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
