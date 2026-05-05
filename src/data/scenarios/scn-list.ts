@@ -418,5 +418,50 @@ export const scenarioBatch: Scenario[] = [
       'A new analyst proposes deleting v1 immediately to "force everyone to migrate". The data steward asks for a structured retirement plan with consumer impact mitigation.',
     questionIds: ['scn-34-q1', 'scn-34-q2'],
     tags: ['lifecycle', 'retirement', 'consumer-impact', 'migration', 'governance']
+  },
+  // ── Governance & security (4 scenarios, 10 questions) ─────────
+  {
+    id: 'scn-35',
+    title: 'Wonka Industries cross-BU least-privilege design',
+    domain: 'maintain',
+    business: 'Wonka Industries — 5 business units (Confectionery, R&D, Logistics, Finance, HR), 350-person analytics community',
+    prompt:
+      'Wonka has consolidated to a single F128 Fabric capacity. Each BU has 50-90 analysts. Some reports must be visible cross-BU (e.g., Finance dashboards seen by all unit heads). HR data is highly sensitive. ' +
+      'Today everyone is a Member of every workspace; auditors flagged this as a breach risk. The CIO wants least-privilege but does not want to break cross-BU sharing.',
+    questionIds: ['scn-35-q1', 'scn-35-q2', 'scn-35-q3'],
+    tags: ['governance', 'least-privilege', 'apps', 'cross-bu', 'workspace-design']
+  },
+  {
+    id: 'scn-36',
+    title: 'Trask Industries dynamic RLS for managers',
+    domain: 'semantic',
+    business: 'Trask Industries — defense contractor, 80-deep manager hierarchy, regulated workload',
+    prompt:
+      'Trask\'s SalesPerformance semantic model needs dynamic RLS so each manager sees only the salespeople in their reporting tree (anywhere down the chain). The Salesperson dimension has [ManagerEmail] (immediate manager) and [ManagerEmailPath] (delimited path of all ancestors). ' +
+      'A junior dev wrote the role expression as `[ManagerEmail] = USERPRINCIPALNAME()` and managers complained they could only see direct reports — not the full reporting tree. The senior architect asks for the right pattern + a test plan.',
+    questionIds: ['scn-36-q1', 'scn-36-q2', 'scn-36-q3'],
+    tags: ['rls', 'dynamic', 'pathcontains', 'hierarchy', 'testing']
+  },
+  {
+    id: 'scn-37',
+    title: 'Helix Pharma Confidential label propagation',
+    domain: 'maintain',
+    business: 'Helix Pharma — clinical trials, GxP-regulated, Microsoft Purview deployed tenant-wide',
+    prompt:
+      'Helix marks the TrialResults semantic model with a "Highly Confidential — Trials" Purview label that includes encryption + audit + restricted recipients. ' +
+      'A clinician\'s report consumes the model from another workspace and exports to Excel. The auditor wants assurance that (a) the label propagated, (b) the Excel file is encrypted and audited, and (c) the export is logged centrally. The data steward needs to design the propagation chain + the audit verification.',
+    questionIds: ['scn-37-q1', 'scn-37-q2', 'scn-37-q3'],
+    tags: ['sensitivity-labels', 'purview', 'propagation', 'audit', 'encryption']
+  },
+  {
+    id: 'scn-38',
+    title: 'Grayson Global multi-role RLS surprise',
+    domain: 'semantic',
+    business: 'Grayson Global — financial services, 1500-person analytics community, role-based access',
+    prompt:
+      'A semantic model has two RLS roles: "Region_East" (filter `[Region] = "East"`) and "Manager_View" (filter via PATHCONTAINS on the manager hierarchy). A user is in BOTH roles via group membership. They report "I see EVERY row in the model — RLS is broken." ' +
+      'The architect investigates whether RLS is broken or working as designed.',
+    questionIds: ['scn-38-q1', 'scn-38-q2'],
+    tags: ['rls', 'multi-role', 'union', 'troubleshooting', 'design']
   }
 ];

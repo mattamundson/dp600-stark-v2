@@ -1549,5 +1549,220 @@ export const scenarioQuestions: Question[] = [
       4: 'Forced deletion is the anti-pattern. Migration by deadline + sign-off works; migration by outage does not.'
     },
     source: SRC.governance, tags: ['lifecycle', 'scenario', 'retirement', 'process']
+  }),
+
+  // ─── scn-35 — Wonka Industries cross-BU least-privilege (3 Qs) ─────
+  single({
+    id: 'scn-35-q1', type: 'scenario-single', domain: 'maintain', subtopic: 'security-governance', difficulty: 4,
+    scenarioId: 'scn-35', scenarioTitle: 'Wonka Industries cross-BU least-privilege design',
+    prompt: 'Today everyone is Member of every workspace. The CIO wants least-privilege without breaking cross-BU report sharing. Which TARGET design balances these?',
+    options: [
+      'Single shared workspace + everyone Viewer; report owners share individually',
+      'Per-BU workspace; Apps publish cross-BU reports with audience-based access; per-model Build for downstream models',
+      'Per-BU workspace; everyone is Member of every workspace; rely on RLS to prevent abuse',
+      'Single workspace + dynamic RLS keyed on BU code'
+    ],
+    correct: 1,
+    explanation: 'Per-BU workspace + Apps + per-model Build is the canonical answer. Apps deliver curated cross-BU sharing without granting workspace-level access, and Build is the right granularity for model consumers.',
+    whyWrong: {
+      0: 'Single workspace breaks BU autonomy and audit clarity.',
+      2: 'Member-everywhere violates least-privilege catastrophically — it is the current state.',
+      3: 'Single workspace + RLS misses workspace-level audit and isolation.'
+    },
+    source: SRC.governance, tags: ['governance', 'scenario', 'least-privilege', 'apps']
+  }),
+  multi({
+    id: 'scn-35-q2', type: 'scenario-multi', domain: 'maintain', subtopic: 'security-governance', difficulty: 4,
+    scenarioId: 'scn-35', scenarioTitle: 'Wonka Industries cross-BU least-privilege design',
+    prompt: 'For HR (highly sensitive), which extra controls should layer on top of the base design? Select all that apply.',
+    options: [
+      'OneLake folder ACLs on the HR Lakehouse Files folder, restricted to the HR analyst Entra group',
+      'Sensitivity label "Highly Confidential — HR" on the HR semantic model with encryption + audit + restricted-recipients',
+      'OLS to hide PII columns from non-HR roles consuming the model',
+      'Make every HR analyst a tenant Admin to ensure they can audit access',
+      'Disable export-to-Excel for the HR workspace via tenant-admin policy'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Defense-in-depth: file-level ACLs (1), sensitivity label (2), OLS for PII (3), export-disable for HR workspace (5). Making analysts tenant Admins (4) is wildly over-privileged.',
+    whyWrong: {
+      3: 'Tenant Admin gives full tenant control — way beyond what HR analysts need.'
+    },
+    source: SRC.governance, tags: ['governance', 'scenario', 'hr', 'defense-in-depth', 'sensitivity-labels']
+  }),
+  single({
+    id: 'scn-35-q3', type: 'scenario-single', domain: 'maintain', subtopic: 'workspace-roles', difficulty: 4,
+    scenarioId: 'scn-35', scenarioTitle: 'Wonka Industries cross-BU least-privilege design',
+    prompt: 'For migration FROM the current "Member-everywhere" state, what is the SAFEST first step?',
+    options: [
+      'Drop everyone to Viewer immediately to enforce least-privilege',
+      'Audit current consumption (which user actually edits in which workspace) BEFORE removing roles, so removal does not break daily work',
+      'Delete and recreate workspaces fresh',
+      'Send a tenant-wide email asking users to self-report their needs'
+    ],
+    correct: 1,
+    explanation: 'Audit consumption first. Removing roles before knowing who actually uses what breaks daily work and triggers a flood of access tickets. Activity logs surface real usage; remove the unused privileges, then iterate.',
+    whyWrong: {
+      0: 'Drop-to-Viewer breaks every active editor in the tenant overnight.',
+      2: 'Delete-and-recreate is destructive and loses the workspace history.',
+      3: 'Self-reporting is unreliable; audit data is authoritative.'
+    },
+    source: SRC.governance, tags: ['governance', 'scenario', 'migration', 'audit-first']
+  }),
+
+  // ─── scn-36 — Trask Industries dynamic RLS hierarchy (3 Qs) ────
+  single({
+    id: 'scn-36-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 4,
+    scenarioId: 'scn-36', scenarioTitle: 'Trask Industries dynamic RLS for managers',
+    prompt: 'Why did `[ManagerEmail] = USERPRINCIPALNAME()` show only direct reports?',
+    options: [
+      'Because [ManagerEmail] holds the immediate manager, not the path of ancestors. To match anywhere in the tree, use [ManagerEmailPath] with PATHCONTAINS.',
+      'Because USERPRINCIPALNAME() returns a different format than the column.',
+      'Because RLS roles cache and need a manual refresh.',
+      'Because dynamic RLS does not support email comparison.'
+    ],
+    correct: 0,
+    explanation: 'Equality on [ManagerEmail] only matches when the user IS the immediate manager. To see the entire downstream tree, the path-aware test on [ManagerEmailPath] (delimited ancestors) is required — and PATHCONTAINS is the correct operator.',
+    whyWrong: {
+      1: 'UPN format is consistent within tenant; not the cause.',
+      2: 'There is no manual cache refresh on RLS.',
+      3: 'RLS supports any boolean DAX expression including string comparison.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'hierarchy', 'pathcontains']
+  }),
+  single({
+    id: 'scn-36-q2', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 4,
+    scenarioId: 'scn-36', scenarioTitle: 'Trask Industries dynamic RLS for managers',
+    prompt: 'Which DAX expression is the FIX?',
+    options: [
+      'PATHCONTAINS([ManagerEmailPath], USERPRINCIPALNAME())',
+      'CONTAINS(Salesperson, [ManagerEmailPath], USERPRINCIPALNAME())',
+      'SEARCH(USERPRINCIPALNAME(), [ManagerEmailPath]) > 0',
+      'LOOKUPVALUE(Salesperson[ManagerEmail], Salesperson[Email], USERPRINCIPALNAME())'
+    ],
+    correct: 0,
+    explanation: 'PATHCONTAINS is purpose-built for hierarchy-path tests. SEARCH would substring-match and false-match `manager@x.com` against `senior-manager@x.com`. CONTAINS is for table membership. LOOKUPVALUE returns scalar.',
+    whyWrong: {
+      1: 'CONTAINS is not the operator for path predicates.',
+      2: 'SEARCH does substring matching → false positives on similar emails.',
+      3: 'LOOKUPVALUE returns a scalar, not a row predicate.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'pathcontains', 'fix']
+  }),
+  multi({
+    id: 'scn-36-q3', type: 'scenario-multi', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-36', scenarioTitle: 'Trask Industries dynamic RLS for managers',
+    prompt: 'Which test plan items should the architect require BEFORE shipping the corrected RLS? Select all that apply.',
+    options: [
+      'View as Role with at least 3 manager identities (top, middle, bottom of hierarchy)',
+      'Verify XMLA-endpoint connections (Excel, Tabular Editor) honor the role',
+      'Confirm group-membership propagation lag does not delay role activation',
+      'Test against the model owner identity only (because the owner has elevated privileges that simulate the worst case)',
+      'Audit-log a sample query to confirm row counts match expected for each test identity'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Multi-identity View as Role (1), XMLA bypass test (2), group-propagation test (3), audit confirmation (5). Testing only with the model owner identity (4) is the canonical anti-pattern — the owner BYPASSES RLS in test mode.',
+    whyWrong: {
+      3: 'Owner-identity bypass is the trap; testing on the owner gives false-pass results.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'testing', 'owner-bypass', 'xmla']
+  }),
+
+  // ─── scn-37 — Helix Pharma sensitivity label propagation (3 Qs) ───
+  single({
+    id: 'scn-37-q1', type: 'scenario-single', domain: 'maintain', subtopic: 'sensitivity-labels', difficulty: 4,
+    scenarioId: 'scn-37', scenarioTitle: 'Helix Pharma Confidential label propagation',
+    prompt: 'A clinician\'s report in Workspace B consumes the labeled model in Workspace A. What label does the report carry?',
+    options: [
+      'No label — labels do not cross workspace boundaries',
+      'The same label, propagated automatically',
+      'A weaker derived label',
+      'Whatever label the report owner sets'
+    ],
+    correct: 1,
+    explanation: 'Sensitivity labels propagate automatically from upstream model to downstream report — even across workspaces. This is THE feature for regulated workloads.',
+    whyWrong: {
+      0: 'Labels DO cross workspaces.',
+      2: 'There is no weaker-derived rule.',
+      3: 'Owner override does not bypass propagation.'
+    },
+    source: SRC.sensitivity, tags: ['sensitivity-labels', 'scenario', 'propagation']
+  }),
+  multi({
+    id: 'scn-37-q2', type: 'scenario-multi', domain: 'maintain', subtopic: 'sensitivity-labels', difficulty: 4,
+    scenarioId: 'scn-37', scenarioTitle: 'Helix Pharma Confidential label propagation',
+    prompt: 'When the clinician exports report data to Excel, which protections apply automatically? Select all that apply.',
+    options: [
+      'Excel file inherits the encryption from the label',
+      'Excel file inherits the audit policy (open events logged)',
+      'Excel file inherits the recipient restriction (only allow-listed users can open)',
+      'Excel file is automatically deleted after 7 days',
+      'Excel file inherits the visual watermark setting on open'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Encryption, audit, recipient restriction, and watermark all propagate to exports. There is NO automatic 7-day deletion — labels do not implement file lifecycle.',
+    whyWrong: {
+      3: 'Sensitivity labels do not implement file expiry. Use Purview Information Protection retention policies for that, separately.'
+    },
+    source: SRC.sensitivity, tags: ['sensitivity-labels', 'scenario', 'export', 'protection']
+  }),
+  single({
+    id: 'scn-37-q3', type: 'scenario-single', domain: 'maintain', subtopic: 'security-governance', difficulty: 4,
+    scenarioId: 'scn-37', scenarioTitle: 'Helix Pharma Confidential label propagation',
+    prompt: 'Where does the auditor verify that exports are CENTRALLY logged?',
+    options: [
+      'Workspace activity log only',
+      'Microsoft Purview Activity Explorer (cross-tenant audit surface for label events)',
+      'Capacity Metrics app',
+      'Power BI Desktop "Audit log" pane'
+    ],
+    correct: 1,
+    explanation: 'Purview Activity Explorer is the cross-tenant audit surface for sensitivity-label-related events. Workspace activity log is per-workspace and misses cross-workspace exports. Capacity Metrics tracks CU, not data access.',
+    whyWrong: {
+      0: 'Workspace activity is per-workspace and misses cross-workspace flows.',
+      2: 'Capacity Metrics tracks resource use, not data-access events.',
+      3: 'Power BI Desktop has no central audit log surface.'
+    },
+    source: SRC.governance, tags: ['sensitivity-labels', 'scenario', 'audit', 'purview']
+  }),
+
+  // ─── scn-38 — Grayson Global multi-role RLS (2 Qs) ────────────
+  single({
+    id: 'scn-38-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-38', scenarioTitle: 'Grayson Global multi-role RLS surprise',
+    prompt: 'The user is in BOTH "Region_East" and "Manager_View". They see EVERY row. Is RLS broken?',
+    options: [
+      'No — multi-role users see the UNION of role filters. The user manages people in WEST and is in Region_East — together those filters cover every row.',
+      'Yes — RLS evaluation is non-deterministic with overlapping roles',
+      'Yes — there is a known bug when two roles use string filters',
+      'No — but only because the user is the model owner; production users would see less'
+    ],
+    correct: 0,
+    explanation: 'Multi-role RLS is UNION semantics (OR), not intersection (AND). Each role contributes rows; the user sees the union. This is the canonical exam trap. Working as designed, just unintuitive.',
+    whyWrong: {
+      1: 'Evaluation is fully deterministic — UNION of role filters.',
+      2: 'No such bug exists.',
+      3: 'Owner bypass is irrelevant when explaining UNION semantics; this user is non-owner per the scenario.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'multi-role', 'union', 'exam-trap']
+  }),
+  multi({
+    id: 'scn-38-q2', type: 'scenario-multi', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-38', scenarioTitle: 'Grayson Global multi-role RLS surprise',
+    prompt: 'Which design changes would make multi-role assignment safer for Grayson? Select all that apply.',
+    options: [
+      'Combine the two filters into a SINGLE role with `[Region] = "East" && PATHCONTAINS(...)` — intersection semantics',
+      'Document multi-role assignment as a privileged action requiring signoff',
+      'Migrate all role assignments to direct user-to-role (no group-based) to control union behavior',
+      'Add a "deny" role layer that filters out rows the user should NEVER see — RLS does not have explicit deny, so this would not work',
+      'Use OLS to hide entire tables from one of the role members instead'
+    ],
+    correct: [0, 1],
+    explanation: 'Combining into a single role with AND semantics (1) is the right fix when intersection is intended. Documenting multi-role as a privileged action (2) is procedural mitigation. Direct user-to-role (3) does not change UNION semantics. RLS has no DENY (4 — correctly noted but the option says "would not work" so the option itself is wrong as a fix). OLS hides tables, not rows (5) — wrong tool.',
+    whyWrong: {
+      2: 'Direct vs group does not change UNION semantics.',
+      3: 'The option correctly observes RLS has no DENY but proposes a non-fix.',
+      4: 'OLS is for column/table hiding, not row-level filtering.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'design-fix', 'multi-role']
   })
 ];

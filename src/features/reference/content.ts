@@ -362,6 +362,46 @@ export const refSections: RefSection[] = [
     warning: 'Patterns 1, 3, and 5 are SILENT failures — wrong but no error. Performance Analyzer + DAX Studio are the way to catch them.'
   },
   {
+    slug: 'security-decision-matrix',
+    title: 'Security decision matrix — pick the right tool',
+    category: 'Maintain solution',
+    paragraphs: [
+      'Most DP-600 security questions reduce to a single decision: WHAT are you trying to hide / protect / log, and which mechanism IS the answer? The matrix below is the single highest-ROI reference card on this material.'
+    ],
+    table: {
+      headers: ['Goal', 'Mechanism', 'Layer', 'Common wrong tool'],
+      rows: [
+        ['Hide certain ROWS from a user', 'Semantic-model RLS roles', 'Model layer', 'Trying to use OLS (column-only)'],
+        ['Hide certain COLUMNS / TABLES from a user', 'OLS', 'Model layer', 'Trying to use RLS (row-only)'],
+        ['Hide BOTH rows and columns from same user', 'OLS + RLS combined', 'Model layer (both)', 'Single RLS expression "with column predicate" — does NOT actually hide column from field lists'],
+        ['Encrypt exports to Excel/PDF', 'Purview sensitivity label with encryption protection', 'Tenant / data classification', 'Workspace-level export disable (broader than needed)'],
+        ['Restrict who can view a report', 'App audience OR per-item Build/Read', 'Item / app layer', 'Adding the user as workspace Member (over-privileged)'],
+        ['Audit every read tenant-wide', 'Microsoft Purview Activity Explorer', 'Tenant audit', 'Workspace activity log (per-workspace, misses cross-workspace flows)'],
+        ['Force a user to see only THEIR managed reports', 'Dynamic RLS with PATHCONTAINS([Path], USERPRINCIPALNAME())', 'Model layer', '`SEARCH(...)>0` — substring false-matches on similar emails'],
+        ['Block a user from a specific OneLake folder', 'OneLake folder-level ACL on the folder, denying the Entra group', 'Storage / OneLake', 'Workspace role downgrade (too coarse)'],
+        ['Apply a uniform "Confidential" classification across reports', 'Workspace-level sensitivity label (propagates to items)', 'Tenant / Purview', 'Setting label on each item individually'],
+        ['Combine model-level RLS with warehouse-level RLS', 'Both apply — filters AND together (most restrictive wins). Direct Lake on Warehouse falls back to DirectQuery to honor warehouse RLS.', 'Multi-layer', 'Assuming one supersedes the other']
+      ]
+    },
+    warning: 'The single most common wrong answer on the exam: trying to use RLS to hide a column. RLS filters rows; it CANNOT hide columns from field lists. Use OLS for that.'
+  },
+  {
+    slug: 'rls-multi-role-trap',
+    title: 'RLS multi-role UNION trap (canonical exam question)',
+    category: 'Maintain solution',
+    paragraphs: [
+      'The single most common RLS trap: when a user is in MULTIPLE roles, the role filters are UNIONed (OR), NOT intersected (AND). Each role contributes the rows it allows; the user sees the union of all of them.'
+    ],
+    bullets: [
+      '**Multi-role behavior:** Filters are combined via UNION. A user in roles "Region_East" AND "Manager_View" sees ALL rows from East PLUS ALL rows their hierarchy includes — possibly the entire model.',
+      '**If you NEED intersection:** Combine the predicates into a SINGLE role: `[Region] = "East" && PATHCONTAINS(...)` — one role, AND semantics.',
+      '**Multi-role assignment is a privileged action.** Treat it as an explicit choice, not a side-effect of group membership.',
+      '**There is NO explicit DENY in RLS.** You cannot "subtract" rows with a deny role. Restructure the model or roles instead.',
+      '**Owner-identity bypass:** Model owner / Admin sees ALL rows in test mode. Always test with a non-owner identity. The owner-bypass is the #2 cause of "RLS is broken in prod" tickets.'
+    ],
+    warning: 'If a user reports "I see rows I should not see," check role membership FIRST. The fix is usually "remove from one of the roles" or "combine roles into a single AND-predicate role."'
+  },
+  {
     slug: 'maintain-operations-checklist',
     title: 'Maintenance & operations checklist',
     category: 'Maintain solution',
