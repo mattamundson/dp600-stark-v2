@@ -146,6 +146,7 @@ export const deploymentDeep: Question[] = [
       3: 'There is no "force apply" flag — rule application is automatic when the binding matches.'
     },
     source: SRC.deployment,
+    relatedIds: ['dlm2-004', 'dpd-008'],
     tags: ['deployment-pipelines', 'parameter-rule', 'case-sensitive', 'silent-failure', 'exam-trap']
   }),
   multi({
@@ -164,6 +165,7 @@ export const deploymentDeep: Question[] = [
       3: 'Lakehouse SQL endpoints are NOT rebindable via Data Source Rules — Lakehouse and Warehouse references are workspace-scoped object IDs, not user-defined connection strings, and they re-resolve based on the target stage\'s paired workspace.'
     },
     source: SRC.deployment,
+    relatedIds: ['dlm2-004', 'dpd-007'],
     tags: ['deployment-pipelines', 'rules-deep', 'parameter-rule', 'data-source-rule']
   }),
 

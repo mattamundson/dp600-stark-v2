@@ -14,6 +14,7 @@ interface SingleInput {
   whyWrong: Record<number, string>;
   source: SourceAnchor;
   tags?: string[];
+  relatedIds?: string[];
   scenarioId?: string;
   scenarioTitle?: string;
   type?: Extract<QuestionType, 'single' | 'scenario-single'>;
@@ -31,6 +32,7 @@ interface MultiInput {
   whyWrong: Record<number, string>;
   source: SourceAnchor;
   tags?: string[];
+  relatedIds?: string[];
   scenarioId?: string;
   scenarioTitle?: string;
   type?: Extract<QuestionType, 'multi' | 'scenario-multi'>;
@@ -48,6 +50,7 @@ interface OrderInput {
   whyWrong?: Record<number, string>;
   source: SourceAnchor;
   tags?: string[];
+  relatedIds?: string[];
 }
 
 const LETTERS = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
@@ -84,6 +87,7 @@ export function single(q: SingleInput): Question {
     whyWrong: whyWrongByIndex(options, [q.correct], q.whyWrong),
     sourceAnchor: q.source,
     tags: q.tags ?? [],
+    ...(q.relatedIds ? { relatedIds: q.relatedIds } : {}),
     ...(q.scenarioId ? { scenarioId: q.scenarioId } : {}),
     ...(q.scenarioTitle ? { scenarioTitle: q.scenarioTitle } : {})
   };
@@ -105,6 +109,7 @@ export function multi(q: MultiInput): Question {
     whyWrong: whyWrongByIndex(options, q.correct, q.whyWrong),
     sourceAnchor: q.source,
     tags: q.tags ?? [],
+    ...(q.relatedIds ? { relatedIds: q.relatedIds } : {}),
     ...(q.scenarioId ? { scenarioId: q.scenarioId } : {}),
     ...(q.scenarioTitle ? { scenarioTitle: q.scenarioTitle } : {})
   };
@@ -130,7 +135,8 @@ export function order(q: OrderInput): Question {
     explanation: q.explanation,
     whyWrong: q.whyWrong ? whyWrongByIndex(options, [], q.whyWrong) : {},
     sourceAnchor: q.source,
-    tags: q.tags ?? []
+    tags: q.tags ?? [],
+    ...(q.relatedIds ? { relatedIds: q.relatedIds } : {})
   };
 }
 

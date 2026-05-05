@@ -1,5 +1,6 @@
 import { describe, expect, test, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { QuestionPlayer } from '../src/components/QuestionPlayer';
 import type { Question } from '../src/lib/schema';
 
@@ -81,5 +82,42 @@ describe('QuestionPlayer', () => {
     expect(onChange.mock.calls.at(-1)?.[0].confidence).toBe('sure');
     fireEvent.keyDown(window, { key: 'g' });
     expect(onChange.mock.calls.at(-1)?.[0].confidence).toBe('guess');
+  });
+
+  test('related-trap links render in revealed verdict and point at /q/:id', () => {
+    const withRelated: Question = {
+      ...single,
+      explanation: 'because B',
+      relatedIds: ['dpd-007', 'dlm2-004']
+    };
+    render(
+      <MemoryRouter>
+        <QuestionPlayer
+          question={withRelated}
+          value={{ selectedOptionIds: ['B'], confidence: 'sure' }}
+          reveal
+          result={{ correct: true, partial: 1 }}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.getByText('Related traps')).toBeInTheDocument();
+    const linkA = screen.getByRole('link', { name: /dpd-007/ });
+    expect(linkA.getAttribute('href')).toBe('/q/dpd-007');
+    const linkB = screen.getByRole('link', { name: /dlm2-004/ });
+    expect(linkB.getAttribute('href')).toBe('/q/dlm2-004');
+  });
+
+  test('verdict omits Related-traps section when relatedIds is absent', () => {
+    render(
+      <MemoryRouter>
+        <QuestionPlayer
+          question={single}
+          value={{ selectedOptionIds: ['B'], confidence: 'sure' }}
+          reveal
+          result={{ correct: true, partial: 1 }}
+        />
+      </MemoryRouter>
+    );
+    expect(screen.queryByText('Related traps')).not.toBeInTheDocument();
   });
 });

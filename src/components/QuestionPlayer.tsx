@@ -2,6 +2,7 @@
 // Used by quiz, simulation, scenarios, and remediation runners. No persistence here.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Confidence, Question } from '../lib/schema';
 
 export interface PlayerAnswer {
@@ -308,6 +309,24 @@ function Verdict({ q, result, chosen, chosenOrder }: { q: Question; result: Resu
         <div className="mt-3 grid gap-1 text-xs text-muted">
           <div><strong className="text-text">Your order:</strong> {chosenOrder.map(idToText(q)).join(' → ')}</div>
           <div><strong className="text-text">Correct order:</strong> {q.correctOrder.map(idToText(q)).join(' → ')}</div>
+        </div>
+      )}
+      {q.relatedIds && q.relatedIds.length > 0 && (
+        <div className="mt-3 border-t border-border/40 pt-3 text-xs">
+          <div className="mb-1 uppercase tracking-wider text-faint">Related traps</div>
+          <ul className="flex flex-wrap gap-2">
+            {q.relatedIds.map((rid) => (
+              <li key={rid}>
+                <Link
+                  to={`/q/${rid}`}
+                  className="badge badge-info hover:opacity-80"
+                  title={`Open question ${rid}`}
+                >
+                  → {rid}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
       <div className="mt-2 text-[11px] text-faint">{q.sourceAnchor.note}</div>

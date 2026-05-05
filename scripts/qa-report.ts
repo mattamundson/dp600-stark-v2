@@ -97,6 +97,20 @@ for (const q of questionBank) {
   }
 }
 
+// ── Cross-question link integrity ────────────────────────────────
+let withRelated = 0;
+let relatedLinks = 0;
+for (const q of questionBank) {
+  if (!q.relatedIds || q.relatedIds.length === 0) continue;
+  withRelated += 1;
+  for (const rid of q.relatedIds) {
+    relatedLinks += 1;
+    if (!ids.has(rid)) err(`Question ${q.id} relatedIds references missing question ${rid}`);
+    if (rid === q.id) err(`Question ${q.id} relatedIds points at itself`);
+  }
+}
+console.log(`\nRelated-question links: ${relatedLinks} edges across ${withRelated} questions`);
+
 // ── Scenario integrity ──────────────────────────────────────────
 console.log('\nScenarios:', scenarios.length, '(target: 15)');
 if (scenarios.length < 15) err(`Scenarios ${scenarios.length} < 15 required`);

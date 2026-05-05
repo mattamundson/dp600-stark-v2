@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { DashboardView } from '../features/dashboard/DashboardView';
 import { QuizView } from '../features/quiz/QuizView';
+import { SingleQuestionView } from '../features/quiz/SingleQuestionView';
 import { SimulationView } from '../features/simulation/SimulationView';
 import { ScenarioView } from '../features/scenarios/ScenarioView';
 import { FlashcardsView } from '../features/flashcards/FlashcardsView';
@@ -21,6 +22,7 @@ export function App() {
       <Routes>
         <Route path="/" element={<DashboardView />} />
         <Route path="/quiz" element={<QuizView />} />
+        <Route path="/q/:id" element={<SingleQuestionView />} />
         <Route path="/simulation" element={<SimulationView />} />
         <Route path="/scenarios" element={<ScenarioView />} />
         <Route path="/scenarios/:id" element={<ScenarioView />} />

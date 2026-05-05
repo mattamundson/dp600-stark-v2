@@ -54,6 +54,9 @@ export interface Question {
   explanation: string;
   /** keyed by option id; explains why each wrong option is wrong */
   whyWrong?: Record<string, string>;
+  /** related question IDs surfaced in the explanation panel — builds reasoning chains
+   *  by connecting questions that share a trap, mechanism, or cross-domain implication. */
+  relatedIds?: string[];
   sourceAnchor: SourceAnchor;
   tags: string[];
 }

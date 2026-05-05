@@ -37,6 +37,7 @@ export const directLakeModern: Question[] = [
       3: 'Import mode does not fall back to DirectQuery, but it forces a full refresh cycle and copies the entire data volume — overkill when Direct Lake on OneLake already meets the requirement without refreshing.'
     },
     source: SRC.directLakeFallback,
+    relatedIds: ['dlm2-005', 'dlm2-002'],
     tags: ['direct-lake', 'on-onelake', 'fallback', 'sla']
   }),
 
@@ -60,6 +61,7 @@ export const directLakeModern: Question[] = [
       3: 'Composition IS supported with Direct Lake on OneLake; Direct Lake is not categorically composition-incompatible.'
     },
     source: SRC.directLake,
+    relatedIds: ['dlm2-001', 'dlm2-005'],
     tags: ['direct-lake', 'composite-model', 'on-onelake', 'on-sql']
   }),
 
@@ -79,6 +81,7 @@ export const directLakeModern: Question[] = [
     explanation: 'All four are documented behaviors of Direct Lake on SQL. Non-materialized views and SQL RLS both force a DirectQuery fallback (or error when forbidden). OLS errors are raised at query time when the calling identity lacks the granted columns/tables. Deployment pipeline rebind rules ARE supported on Direct Lake on SQL — this is a key contrast with Direct Lake on OneLake, where rebinding requires a parameter expression workaround.',
     whyWrong: {},
     source: SRC.deployment,
+    relatedIds: ['dlm2-005', 'dpd-008'],
     tags: ['direct-lake', 'on-sql', 'sql-endpoint', 'rls', 'ols', 'deployment-pipelines']
   }),
 
@@ -102,6 +105,7 @@ export const directLakeModern: Question[] = [
       3: 'Round-tripping through Import is destructive (loses Direct Lake performance + framing), and the round-trip is not even supported as a deployment pattern.'
     },
     source: SRC.deployment,
+    relatedIds: ['dpd-007', 'dpd-008'],
     tags: ['direct-lake', 'on-onelake', 'deployment-pipelines', 'parameter-rule', 'exam-trap']
   }),
 
@@ -123,6 +127,7 @@ export const directLakeModern: Question[] = [
       2: 'SQL-endpoint RLS is NOT applied to Direct Lake on OneLake — file-level OneLake permissions govern access, and SQL RLS rules are bypassed. This is a regulated-workload trap: if you assumed SQL RLS still gated rows, audit will find leaks.'
     },
     source: SRC.rls,
+    relatedIds: ['dlm2-001', 'dlm2-002', 'dlm2-003'],
     tags: ['direct-lake', 'on-onelake', 'rls', 'composite-model', 'security']
   })
 ];
