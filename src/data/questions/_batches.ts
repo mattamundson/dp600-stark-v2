@@ -17,6 +17,7 @@ import { prepareMore } from './q-prepare-more';
 import { prepareLab } from './q-prepare-lab';
 import { qPrepareBlueprintFill } from './q-prepare-blueprint-fill';
 import { kqlDeep } from './q-kql-deep';
+import { daxIterators } from './q-dax-iterators';
 import { reinforcement } from './q-reinforcement';
 import { scenarioQuestions } from './q-scenarios';
 import { typeSupplement } from './q-type-supplement';
@@ -40,6 +41,7 @@ export const qBatches: Question[][] = [
   prepareLab,
   qPrepareBlueprintFill,
   kqlDeep,
+  daxIterators,
   reinforcement,
   scenarioQuestions,
   typeSupplement

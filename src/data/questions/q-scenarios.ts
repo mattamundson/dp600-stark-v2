@@ -1861,5 +1861,103 @@ export const scenarioQuestions: Question[] = [
       3: 'No model redeploy needed — that is the design benefit. Adding a tenant is a row INSERT into Users.'
     },
     source: SRC.rls, tags: ['rls', 'scenario', 'multi-tenant', 'considerations']
+  }),
+
+  // ─── scn-41 — Wallaby Drilling RANKX matrix bug (3 Qs) ────────
+  single({
+    id: 'scn-41-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'dax-iterators', difficulty: 5,
+    scenarioId: 'scn-41', scenarioTitle: 'Wallaby Drilling RANKX matrix bug',
+    prompt: 'Why does RANKX show rank 1 for every customer in the matrix?',
+    options: [
+      'Customer table has duplicates',
+      'A matrix visual creates a per-cell filter context that filters Customer to one row — RANKX over a 1-row table always returns 1',
+      'RANKX requires a CALCULATE wrapper',
+      'It is a known visual bug'
+    ],
+    correct: 1,
+    explanation: 'Matrix visuals filter dimension tables to the cell context. RANKX(Customer, [Total Sales]) sees one Customer row → ranks among 1 row → always 1. Wrap the table arg with ALL(Customer) to remove the filter and rank against the full set.',
+    whyWrong: {
+      0: 'No duplicate issue.',
+      2: 'CALCULATE does not address the filter-context restriction.',
+      3: 'Working as designed; not a bug.'
+    },
+    source: SRC.daxFunctions, tags: ['dax-iterators', 'scenario', 'rankx', 'all']
+  }),
+  single({
+    id: 'scn-41-q2', type: 'scenario-single', domain: 'semantic', subtopic: 'dax-iterators', difficulty: 4,
+    scenarioId: 'scn-41', scenarioTitle: 'Wallaby Drilling RANKX matrix bug',
+    prompt: 'Which fix is correct?',
+    options: [
+      '`RANKX(ALL(Customer), [Total Sales], , DESC)`',
+      '`CALCULATE(RANKX(Customer, [Total Sales]))`',
+      '`RANKX(VALUES(Customer[CustomerKey]), [Total Sales])`',
+      '`SUMX(Customer, [Total Sales])`'
+    ],
+    correct: 0,
+    explanation: 'ALL(Customer) removes the matrix-filter restriction so RANKX sees every customer. VALUES would ALSO work in many cases (it surfaces unique values respecting filter context), but ALL is the canonical fix and the most common exam answer.',
+    whyWrong: {
+      1: 'CALCULATE adds context transition but does not remove the matrix filter.',
+      2: 'VALUES respects the cell\'s filter context — same problem as the original.',
+      3: 'SUMX is not a ranking function.'
+    },
+    source: SRC.daxFunctions, tags: ['dax-iterators', 'scenario', 'rankx-fix', 'all']
+  }),
+  single({
+    id: 'scn-41-q3', type: 'scenario-single', domain: 'semantic', subtopic: 'dax-perf', difficulty: 5,
+    scenarioId: 'scn-41', scenarioTitle: 'Wallaby Drilling RANKX matrix bug',
+    prompt: 'For the slow `Slow Avg := AVERAGEX(Sales, Sales[Amount])` on a 200M-row table, what is the correct replacement?',
+    options: [
+      '`AVERAGE(Sales[Amount])` — same result, pushes to storage engine',
+      'Add a CALCULATE wrapper',
+      'Switch to Import mode',
+      'Increase the SKU'
+    ],
+    correct: 0,
+    explanation: 'When the inner expression is a single column, the simple aggregator (AVERAGE) pushes work to VertiPaq and runs in milliseconds. AVERAGEX iterates row-by-row in formula engine — slow. Use X-iterators only when row-level computation is genuinely required (multiple columns, conditional logic, etc.).',
+    whyWrong: {
+      1: 'CALCULATE adds overhead, does not change the engine path.',
+      2: 'Mode change is unrelated; the issue is iterator vs aggregator.',
+      3: 'SKU upgrade does not help formula-engine work that is single-threaded per query.'
+    },
+    source: SRC.daxPerf, tags: ['dax-perf', 'scenario', 'averagex-vs-average']
+  }),
+
+  // ─── scn-42 — Veridian RLS silent leak (2 Qs) ─────────────────
+  single({
+    id: 'scn-42-q1', type: 'scenario-single', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-42', scenarioTitle: 'Veridian RLS LOOKUPVALUE silent leak',
+    prompt: 'Why are the 12 internal users seeing RLS-restricted rows?',
+    options: [
+      'They are still added to Entra groups; RLS is bypassed by group membership',
+      'For users not in the Users table, LOOKUPVALUE returns BLANK; the predicate becomes `[CustomerKey] = BLANK`, which MATCHES rows with NULL CustomerKey',
+      'RLS does not apply via XMLA endpoint connections',
+      'A known LOOKUPVALUE bug; SKU upgrade fixes it'
+    ],
+    correct: 1,
+    explanation: 'LOOKUPVALUE returns BLANK when no match. `[CustomerKey] = BLANK` matches rows where CustomerKey is NULL (data-quality NULLs). Those rows leak. Fix: add a guard `&& NOT(ISBLANK(_ck))` so non-mapped users see ZERO rows.',
+    whyWrong: {
+      0: 'Group membership does not bypass RLS — it is what assigns the role.',
+      2: 'XMLA does honor RLS for non-admin identities.',
+      3: 'No bug; expected DAX behavior.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'lookupvalue', 'blank-leak', 'compliance']
+  }),
+  multi({
+    id: 'scn-42-q2', type: 'scenario-multi', domain: 'semantic', subtopic: 'security-rls', difficulty: 5,
+    scenarioId: 'scn-42', scenarioTitle: 'Veridian RLS LOOKUPVALUE silent leak',
+    prompt: 'Which mitigations close the leak AND prevent recurrence? Select all that apply.',
+    options: [
+      'Add `&& NOT(ISBLANK(_ck))` to the predicate so unmapped users see no rows',
+      'Sync the Users table to Entra group membership on a schedule',
+      'Clean up NULL CustomerKey rows in Sales (data-quality fix)',
+      'Switch to Direct Lake on OneLake to "avoid the issue"',
+      'Add an automated test that validates "an unmapped user sees zero rows" after every model deploy'
+    ],
+    correct: [0, 1, 2, 4],
+    explanation: 'Four real mitigations: predicate guard (1), sync hygiene (2), data-quality cleanup (3), regression test (5). Switching to Direct Lake on OneLake (4) is unrelated — that is a storage-mode change, not a RLS-leak fix.',
+    whyWrong: {
+      3: 'Storage mode is irrelevant to the predicate-evaluation leak.'
+    },
+    source: SRC.rls, tags: ['rls', 'scenario', 'mitigation', 'compliance', 'regression']
   })
 ];

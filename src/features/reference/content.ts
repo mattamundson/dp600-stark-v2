@@ -362,6 +362,63 @@ export const refSections: RefSection[] = [
     warning: 'Patterns 1, 3, and 5 are SILENT failures — wrong but no error. Performance Analyzer + DAX Studio are the way to catch them.'
   },
   {
+    slug: 'dax-iterators-mental-model',
+    title: 'DAX iterators — mental model + canonical traps',
+    category: 'Semantic models',
+    paragraphs: [
+      'DAX iterators (SUMX, AVERAGEX, FILTER, RANKX, TOPN, CONCATENATEX) all share one design: they create a ROW CONTEXT on the inner expression. The exam tests whether you understand context (row vs filter), context transition, and which iterator returns scalar vs table.'
+    ],
+    table: {
+      headers: ['Iterator', 'Returns', 'Common use', 'Trap'],
+      rows: [
+        ['SUMX(table, expr)', 'scalar', 'Per-row arithmetic (Quantity × Price summed)', 'Calling a measure inside triggers context transition (cost)'],
+        ['AVERAGEX(table, expr)', 'scalar', 'Average of a per-row expression', 'Use AVERAGE when expr is a single column — much faster (storage engine)'],
+        ['FILTER(table, predicate)', 'table', 'Restrict a table to matching rows', 'Measure-based predicates are non-sargable and slow'],
+        ['RANKX(table, expr, , DESC)', 'scalar', 'Rank by an expression', 'Matrix visual filters table to 1 row → always returns 1. Wrap with ALL(table)'],
+        ['TOPN(N, table, expr, DESC)', 'table', 'Top-N rows by expr', 'Ties at the boundary expand the result; use a tiebreaker'],
+        ['CONCATENATEX(table, expr, sep, orderBy)', 'scalar', 'Comma-list of values', 'Order-by argument is positional; easy to mix up'],
+        ['MINX/MAXX(table, expr)', 'scalar', 'Min/max of an expr', 'Same iterator-vs-aggregator perf rule as AVERAGEX']
+      ]
+    },
+    bullets: [
+      '**Row context vs filter context.** Iterators create row context. CALCULATE creates filter context. Inside an iterator, calling a measure (or wrapping in CALCULATE) performs CONTEXT TRANSITION — row context becomes filter context.',
+      '**Context transition is NOT free.** Each row triggers a measure evaluation as if it were a separate query. On 200M-row tables this dominates the cost.',
+      '**Use simple aggregators when possible.** SUM, AVERAGE, MIN, MAX, COUNTROWS push to the storage engine (VertiPaq, microseconds). Iterators run in the formula engine (single-threaded per query, slower).',
+      '**ALL vs VALUES inside an iterator.** ALL(table) removes the visual\'s filter; VALUES respects it. RANKX usually wants ALL.',
+      '**VAR captures once.** Variables are evaluated at declaration row context and reused. They do NOT perform context transition. Improves perf + readability.',
+      '**Filter modifier order in CALCULATE.** REMOVEFILTERS / KEEPFILTERS evaluate FIRST, then new filter args apply. So `CALCULATE(m, REMOVEFILTERS(Date), Date[Year]=2026)` clears Date THEN sets Year=2026.'
+    ],
+    code: {
+      lang: 'dax',
+      body:
+        '// Wrong: matrix shows rank 1 for every row\n' +
+        'Customer Rank = RANKX(Customer, [Total Sales])\n' +
+        '\n' +
+        '// Right: ALL removes the matrix-cell filter so RANKX sees the full set\n' +
+        'Customer Rank = RANKX(ALL(Customer), [Total Sales], , DESC)\n' +
+        '\n' +
+        '// Wrong: AVERAGEX over a 200M-row column iterates in formula engine\n' +
+        'Slow Avg = AVERAGEX(Sales, Sales[Amount])\n' +
+        '\n' +
+        '// Right: AVERAGE pushes to storage engine — milliseconds vs seconds\n' +
+        'Fast Avg = AVERAGE(Sales[Amount])\n' +
+        '\n' +
+        '// Context-transition pattern (canonical):\n' +
+        'Per Customer Sales =\n' +
+        '  EVALUATE\n' +
+        '    ADDCOLUMNS(\n' +
+        '      Customer,\n' +
+        '      "TotalSales", CALCULATE(SUM(Sales[Amount]))\n' +
+        '    )\n' +
+        '\n' +
+        '// VAR for caching + readability\n' +
+        '% of Top Customer =\n' +
+        '  VAR _topSales = MAXX(ALL(Customer), [Total Sales])\n' +
+        '  RETURN DIVIDE([Total Sales], _topSales)\n'
+    },
+    warning: 'The single most common DAX exam trap: using an iterator (SUMX/AVERAGEX) when a simple aggregator (SUM/AVERAGE) would do — and being slow because of it. Always check the inner expression first.'
+  },
+  {
     slug: 'direct-lake-security-traps',
     title: 'Direct Lake security traps',
     category: 'Direct Lake',

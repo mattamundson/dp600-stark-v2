@@ -489,5 +489,31 @@ export const scenarioBatch: Scenario[] = [
       'Engineering wants a design that scales to 5000 tenants without per-tenant model edits AND keeps Direct Lake on the column-segment path.',
     questionIds: ['scn-40-q1', 'scn-40-q2'],
     tags: ['rls', 'multi-tenant', 'dynamic-rls', 'scale', 'lookupvalue']
+  },
+  // ── DAX iterators + RLS DAX (2 scenarios, 5 questions) ────────
+  {
+    id: 'scn-41',
+    title: 'Wallaby Drilling RANKX matrix bug',
+    domain: 'semantic',
+    business: 'Wallaby Drilling — energy services, regional sales matrix dashboard',
+    prompt:
+      'A measure `Customer Rank := RANKX(Customer, [Total Sales])` is shown in a matrix visual broken down by Customer. Every row shows rank 1. ' +
+      'A junior dev says "RANKX is broken." A senior architect explains the filter-context interaction and proposes a fix. The dashboard also has a slow `Slow Avg := AVERAGEX(Sales, Sales[Amount])` measure on a 200M-row Sales fact that should be replaced. ' +
+      'The architect must identify both issues and the fix patterns.',
+    questionIds: ['scn-41-q1', 'scn-41-q2', 'scn-41-q3'],
+    tags: ['dax-iterators', 'rankx', 'averagex', 'matrix-visual', 'all', 'performance']
+  },
+  {
+    id: 'scn-42',
+    title: 'Veridian RLS LOOKUPVALUE silent leak',
+    domain: 'semantic',
+    business: 'Veridian Insurance — compliance audit on a customer-RLS implementation',
+    prompt:
+      'A compliance audit found that 12 internal users were seeing RLS-restricted customer rows. The model uses dynamic RLS with: ' +
+      '`VAR _u = USERPRINCIPALNAME() VAR _ck = LOOKUPVALUE(Users[CustomerKey], Users[Email], _u) RETURN [CustomerKey] = _ck`. ' +
+      'The 12 leaking users are NOT in the Users table (they were added to Entra groups but the Users table was not synced). ' +
+      'Some Sales rows have NULL CustomerKey (data-quality issue). The architect must explain the leak and design the guard.',
+    questionIds: ['scn-42-q1', 'scn-42-q2'],
+    tags: ['rls', 'lookupvalue', 'blank-handling', 'compliance', 'security-gap']
   }
 ];
