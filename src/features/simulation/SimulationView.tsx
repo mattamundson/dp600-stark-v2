@@ -15,6 +15,35 @@ import type { Confidence, Session, SessionResult } from '../../lib/schema';
 import { QuestionPlayer } from '../../components/QuestionPlayer';
 import { formatMs } from '../../lib/utils/time';
 import { useToast } from '../../app/providers/ToastProvider';
+import { useSettings } from '../../app/providers/SettingsProvider';
+
+const FINAL_MINUTE_CUE_MS = 60_000;
+
+/** Two short 880Hz beeps. Fail silently if AudioContext is gated (Safari before user gesture). */
+function playFinalMinuteBeep() {
+  try {
+    const Ctx = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctx) return;
+    const ctx = new Ctx();
+    const beep = (when: number) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.frequency.value = 880;
+      o.type = 'sine';
+      g.gain.setValueAtTime(0.0001, ctx.currentTime + when);
+      g.gain.exponentialRampToValueAtTime(0.18, ctx.currentTime + when + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + when + 0.18);
+      o.connect(g).connect(ctx.destination);
+      o.start(ctx.currentTime + when);
+      o.stop(ctx.currentTime + when + 0.2);
+    };
+    beep(0);
+    beep(0.3);
+    setTimeout(() => void ctx.close(), 800);
+  } catch {
+    /* AudioContext unavailable / suspended; banner alone is enough */
+  }
+}
 
 export function SimulationView() {
   const [session, setSession] = useState<Session | null>(null);
@@ -22,7 +51,9 @@ export function SimulationView() {
   const [result, setResult] = useState<SessionResult | null>(null);
   const tickRef = useRef<number | null>(null);
   const submittingRef = useRef(false);
+  const cueFiredRef = useRef(false);
   const { push } = useToast();
+  const { settings } = useSettings();
 
   useEffect(() => {
     void getActiveSimulation().then((existing) => {
@@ -41,25 +72,38 @@ export function SimulationView() {
     if (boot !== 'running' || !session) return;
     let last = Date.now();
     let writeAccum = 0;
+    // Reset cue gate when a fresh session starts; pre-arm if loading a session
+    // already past T-60s so we don't surprise-beep mid-revisit.
+    cueFiredRef.current = (session.snapshot?.timeRemainingMs ?? SIMULATION_MS) <= FINAL_MINUTE_CUE_MS;
     tickRef.current = window.setInterval(() => {
       const now = Date.now();
       const dt = now - last; last = now; writeAccum += dt;
       let snapshotForSubmit: Session | null = null;
+      let crossedFinalMinute = false;
       setSession((cur) => {
         if (!cur || !cur.snapshot || cur.snapshot.submitted) return cur;
-        const remaining = Math.max(0, cur.snapshot.timeRemainingMs - dt);
+        const prev = cur.snapshot.timeRemainingMs;
+        const remaining = Math.max(0, prev - dt);
         const next = { ...cur, snapshot: { ...cur.snapshot, timeRemainingMs: remaining } };
         if (writeAccum >= 10_000) { writeAccum = 0; void saveSession(next); }
+        if (!cueFiredRef.current && prev > FINAL_MINUTE_CUE_MS && remaining <= FINAL_MINUTE_CUE_MS) {
+          cueFiredRef.current = true;
+          crossedFinalMinute = true;
+        }
         if (remaining <= 0 && !submittingRef.current) {
           submittingRef.current = true;
           snapshotForSubmit = next;
         }
         return next;
       });
+      if (crossedFinalMinute) {
+        push('1 minute remaining — your answers are auto-saved.', 'warn');
+        if (settings?.beepOnFinalMinute !== false) playFinalMinuteBeep();
+      }
       if (snapshotForSubmit) void doSubmit(snapshotForSubmit);
     }, 1000);
     return () => { if (tickRef.current) window.clearInterval(tickRef.current); };
-  }, [boot, session?.id]);
+  }, [boot, session?.id, push, settings?.beepOnFinalMinute]);
 
   async function startNew() {
     if (questionBank.length < SIMULATION_QUESTIONS) {
@@ -115,6 +159,7 @@ function SimulationRunner({ session, setSession, onSubmit }: { session: Session;
   const timeMs = session.snapshot?.timeRemainingMs ?? SIMULATION_MS;
   const flagged = (session.snapshot?.flagged ?? []).includes(qid);
   const answered = useMemo(() => Object.values(session.snapshot?.answers ?? {}).filter((a) => a.selectedOptionIds?.length || a.selectedOrder?.length).length, [session]);
+  const inFinalMinute = timeMs > 0 && timeMs <= FINAL_MINUTE_CUE_MS;
 
   function persist(next: Session) {
     setSession(next);
@@ -137,9 +182,15 @@ function SimulationRunner({ session, setSession, onSubmit }: { session: Session;
 
   return (
     <div className="flex flex-col gap-3">
-      <header className="panel flex flex-wrap items-center justify-between gap-3">
+      {inFinalMinute && (
+        <div role="alert" className="panel border-warn/60 bg-warn/10 text-sm">
+          <strong className="font-semibold">Final minute.</strong>{' '}
+          Auto-submit at 0:00. Answers are saved as you change them — no need to manually submit.
+        </div>
+      )}
+      <header className={`panel flex flex-wrap items-center justify-between gap-3 ${inFinalMinute ? 'border-warn/60' : ''}`}>
         <div>
-          <div className="font-display text-2xl font-bold">{formatMs(timeMs)}</div>
+          <div className={`font-display text-2xl font-bold ${inFinalMinute ? 'text-warn' : ''}`}>{formatMs(timeMs)}</div>
           <div className="text-xs text-muted">{answered} answered · {(session.snapshot?.flagged?.length ?? 0)} flagged</div>
         </div>
         <div className="flex gap-2">
