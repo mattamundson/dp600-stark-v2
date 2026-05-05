@@ -32,6 +32,8 @@ import { starSchema } from './q-star-schema';
 import { fabricNotebooks } from './q-fabric-notebooks';
 import { maintainDeep } from './q-maintain-deep';
 import { fabricCli } from './q-fabric-cli';
+import { workspaceGovernance } from './q-workspace-governance';
+import { scenarioQuestionsBatch2 } from './q-scenarios-batch2';
 
 export const qBatches: Question[][] = [
   directLake,
@@ -66,5 +68,7 @@ export const qBatches: Question[][] = [
   starSchema,
   fabricNotebooks,
   maintainDeep,
-  fabricCli
+  fabricCli,
+  workspaceGovernance,
+  scenarioQuestionsBatch2
 ];

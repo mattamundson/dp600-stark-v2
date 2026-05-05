@@ -8,6 +8,8 @@ const ROUTES = [
   { to: '/', label: 'Dashboard', short: 'Home' },
   { to: '/quiz', label: 'Adaptive Quiz', short: 'Quiz' },
   { to: '/simulation', label: 'Full Simulation', short: 'Sim' },
+  { to: '/simulation-v2', label: 'Sim · 65Q Realism', short: 'Sim2' },
+  { to: '/cockpit', label: 'Last 72 Hours Cockpit', short: 'Cock' },
   { to: '/scenarios', label: 'Scenario Chains', short: 'Scn' },
   { to: '/flashcards', label: 'Flashcards', short: 'Cards' },
   { to: '/remediation', label: 'Weak-Area Remediation', short: 'Fix' },

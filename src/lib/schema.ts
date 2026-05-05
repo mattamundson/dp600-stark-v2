@@ -226,6 +226,17 @@ export interface Settings {
    * Decremented by one each time a quiz session is built.
    */
   emphasisMode?: { domain: Domain; expiresAt: number; sessionsRemaining: number };
+  /**
+   * Controls which exam-realism preset the simulation runner uses.
+   * 'dp600'       — full 65 Q / 100 min exam (DP600_REALISM)
+   * 'dp600-quick' — 25 Q / 35 min daily rep (DP600_QUICK)
+   * 'legacy'      — the previous SimulationView behavior
+   * Omitting this field falls back to 'dp600' in SimulationViewV2 and
+   * 'legacy' in the old SimulationView (no behavior change for existing users).
+   */
+  simRealismMode?: 'dp600' | 'dp600-quick' | 'legacy';
+  /** ISO date string (YYYY-MM-DD) for cockpit exam countdown. */
+  examDate?: string;
 }
 
 /** Single object stored under keyPath 'k' = 'state' */

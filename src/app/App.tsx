@@ -15,6 +15,8 @@ import { SettingsView } from '../features/settings/SettingsView';
 import { DirectLakeMasteryView } from '../features/dashboard/DirectLakeMasteryView';
 import { ComponentPickerView } from '../features/lab/ComponentPickerView';
 import { KqlDrillView } from '../features/lab/KqlDrillView';
+import { Last72HoursView } from '../features/cockpit/Last72HoursView';
+import { SimulationViewV2 } from '../features/simulation/SimulationViewV2';
 
 export function App() {
   return (
@@ -37,6 +39,8 @@ export function App() {
         <Route path="/mastery/direct-lake" element={<DirectLakeMasteryView />} />
         <Route path="/lab/component-picker" element={<ComponentPickerView />} />
         <Route path="/lab/kql-drill" element={<KqlDrillView />} />
+        <Route path="/cockpit" element={<Last72HoursView />} />
+        <Route path="/simulation-v2" element={<SimulationViewV2 />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
