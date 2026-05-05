@@ -1,6 +1,7 @@
 import type { Question } from '../../lib/schema';
 import { directLake } from './q-direct-lake';
 import { directLakeMastery } from './q-direct-lake-mastery';
+import { directLakeModern } from './q-direct-lake-modern';
 import { storageModes } from './q-storage-modes';
 import { semantic } from './q-semantic';
 import { semanticMore } from './q-semantic-more';
@@ -20,6 +21,7 @@ import { typeSupplement } from './q-type-supplement';
 export const qBatches: Question[][] = [
   directLake,
   directLakeMastery,
+  directLakeModern,
   storageModes,
   semantic,
   semanticMore,

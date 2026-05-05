@@ -223,6 +223,37 @@ export const refSections: RefSection[] = [
     warning: 'A non-V-Order Delta table is Direct-Lake-incompatible — queries silently fall back to DirectQuery. Verify with DAX Studio Server Timings; remediate with `OPTIMIZE` + V-Order or by fixing the upstream writer.'
   },
   {
+    slug: 'direct-lake-on-onelake-vs-sql',
+    title: 'Direct Lake on OneLake vs Direct Lake on SQL',
+    category: 'Storage & Direct Lake',
+    paragraphs: [
+      'Microsoft splits Direct Lake into two TABLE storage modes. The split changes fallback behavior, composite-model support, deployment-pipeline rules, and security flow — exam-relevant traps cluster here.',
+      '**Direct Lake on OneLake** reads Delta tables directly from OneLake and never falls back to DirectQuery. **Direct Lake on SQL** routes through the SQL analytics endpoint and falls back when it cannot serve a query (SQL view, RLS, granular access). Fallback is governed by the semantic-model property `Direct Lake behavior` (values: `Automatic` / `DirectLakeOnly` / `DirectQueryOnly`).'
+    ],
+    bullets: [
+      'Falls back? On OneLake: never. On SQL: yes (controllable via Direct Lake behavior property).',
+      'Composite models (Direct Lake + Import + DirectQuery)? On OneLake: supported. On SQL: NOT supported — only calc groups, what-if, field params allowed.',
+      'Deployment pipeline rule to rebind data source? On OneLake: not supported directly (workaround: parameterize the connection string). On SQL: supported.',
+      'Multiple tables from the same source table? Neither supports this in Power BI Desktop / web modeling — XMLA-only via external tools, and edits/refresh fail with multiple.',
+      'SQL endpoint RLS? On OneLake: SQL RLS is NOT applied (file-level OneLake permissions instead). On SQL: queries fall back to DirectQuery to enforce RLS, unless fallback is disabled (then queries fail).',
+      'Sources? On OneLake: any Fabric data source backed by Delta. On SQL: only lakehouse or warehouse tables/views.'
+    ],
+    table: {
+      headers: ['Capability', 'Direct Lake on OneLake', 'Direct Lake on SQL'],
+      rows: [
+        ['Falls back to DirectQuery', 'No', 'Yes (governed by Direct Lake behavior property)'],
+        ['Composite models', 'Yes', 'No (with narrow exceptions)'],
+        ['Deployment pipeline rebind rule', 'No (use parameter expression)', 'Yes'],
+        ['SQL RLS applied', 'No (file-level only)', 'Yes (forces DQ fallback)'],
+        ['SQL OLS / column security', 'No', 'Yes (errors when permission denied)'],
+        ['Connect to SQL views', 'No (use materialized lakehouse view)', 'Yes (forces DQ fallback)'],
+        ['Calculated tables referencing DL columns', 'Limited', 'Not supported'],
+        ['SSO', 'Yes', 'Yes']
+      ]
+    },
+    warning: 'When picking the table storage mode for a regulated/SLA workload: Direct Lake on OneLake guarantees no fallback (perf is predictable), but you lose composite-model + SQL-RLS support. Direct Lake on SQL preserves SQL semantics but you must set Direct Lake behavior = DirectLakeOnly to forbid fallback.'
+  },
+  {
     slug: 'kql-join-kinds',
     title: 'KQL join kinds — the full matrix',
     category: 'KQL',
