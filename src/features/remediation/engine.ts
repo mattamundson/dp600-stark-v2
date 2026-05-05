@@ -126,7 +126,7 @@ export function weakSpots(attempts: Attempt[]): WeakSpot[] {
 }
 
 export interface RemediationOpts {
-  size: 10 | 15 | 20;
+  size: number;
 }
 
 export function buildRemediation(bank: Question[], attempts: Attempt[], opts: RemediationOpts): string[] {

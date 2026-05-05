@@ -5,7 +5,7 @@
 // to weak-area weighting and the per-domain analytics views (under the
 // 'component-picker' subtopic).
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { pickerPrompts, type PickerPrompt } from '../../data/lab/picker-prompts';
 import { saveAttempt } from '../../lib/storage/db';

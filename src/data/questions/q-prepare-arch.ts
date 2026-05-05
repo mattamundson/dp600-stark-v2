@@ -1,5 +1,5 @@
 import type { Question } from '../../lib/schema';
-import { single, multi, order, SRC } from './_helpers';
+import { single, multi, SRC } from './_helpers';
 
 export const prepareArchitecture: Question[] = [
   single({

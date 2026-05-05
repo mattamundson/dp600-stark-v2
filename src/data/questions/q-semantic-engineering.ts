@@ -1,5 +1,5 @@
 import type { Question } from '../../lib/schema';
-import { single, multi, order, SRC } from './_helpers';
+import { single, multi, SRC } from './_helpers';
 
 // 35 deep semantic-engineering questions, IDs `sme-001..sme-035`. IDs are
 // unique against existing sem-, sx-, scn-, and other ranges. Distribution:
