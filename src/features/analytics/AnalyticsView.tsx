@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listAttempts, listSessions } from '../../lib/storage/db';
-import { accuracyByDomain, accuracyBySubtopic, calibration, recentWindow, timePerTopic, trend, finishedSessions } from './engine';
+import { accuracyByDomain, accuracyBySubtopic, calibration, recentWindow, timePerTopic, trend, finishedSessions, pacingSummary, PROJECTION_QUESTIONS, type PacingSummary } from './engine';
 import { weakSpots } from '../remediation/engine';
 import { readinessFromAttempts } from '../../lib/scoring/score';
 import type { Attempt, Session } from '../../lib/schema';
@@ -39,6 +39,7 @@ export function AnalyticsView() {
   const trend7 = trend(last7);
   const sims = finishedSessions(sessions).filter((s) => s.mode === 'simulation');
   const spots = weakSpots(attempts);
+  const pacing = pacingSummary(last7, sessions);
 
   return (
     <div className="flex flex-col gap-4">
@@ -110,6 +111,8 @@ export function AnalyticsView() {
         </table>
       </section>
 
+      <PacingPanel pacing={pacing} />
+
       <section className="grid gap-4 md:grid-cols-2">
         <div className="panel">
           <h2 className="mb-3 text-lg font-bold">Time per topic</h2>
@@ -142,6 +145,67 @@ export function AnalyticsView() {
         )}
       </section>
     </div>
+  );
+}
+
+function PacingPanel({ pacing }: { pacing: PacingSummary }) {
+  const a = pacing.adaptive;
+  const sim = pacing.simulationOrAll;
+  if (a.status === 'insufficient' && sim.status === 'insufficient') {
+    return null;
+  }
+  const focus = sim.status !== 'insufficient' ? sim : a;
+  const tone = focus.status === 'red' ? 'text-bad' : focus.status === 'yellow' ? 'text-warn' : 'text-ok';
+  const banner =
+    focus.status === 'red'
+      ? `At ${formatHumanDuration(focus.avgMs)} per question, a ${PROJECTION_QUESTIONS}-Q exam projects to ${Math.round(focus.projectionMinutes)} min — over the 100-min limit.`
+      : focus.status === 'yellow'
+        ? `Pacing is borderline (${formatHumanDuration(focus.avgMs)}/Q). At ${PROJECTION_QUESTIONS} questions you'd finish in ${Math.round(focus.projectionMinutes)} min — within budget but tight.`
+        : `Pacing is on track (${formatHumanDuration(focus.avgMs)}/Q). Projected total ${Math.round(focus.projectionMinutes)} min on a ${PROJECTION_QUESTIONS}-Q exam.`;
+  return (
+    <section className="panel">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-bold">Pacing — last 7 days</h2>
+        <span className={`badge ${focus.status === 'red' ? 'badge-bad' : focus.status === 'yellow' ? 'badge-warn' : 'badge-good'}`}>
+          {focus.status.toUpperCase()}
+        </span>
+      </div>
+      <p className={`mt-2 text-sm ${tone}`}>{banner}</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <Stat
+          label="Adaptive avg/Q"
+          value={a.attempts === 0 ? '—' : formatHumanDuration(a.avgMs)}
+          sub={a.attempts === 0 ? 'no timed quizzes' : `n=${a.attempts}`}
+        />
+        <Stat
+          label="Simulation avg/Q"
+          value={sim.attempts === 0 ? '—' : formatHumanDuration(sim.avgMs)}
+          sub={sim.attempts === 0 ? 'no recent sims' : pacing.simulationOrAll.source === 'simulation' ? `n=${sim.attempts}` : 'falling back to all'}
+        />
+        <Stat
+          label={`Projected at ${PROJECTION_QUESTIONS} Q`}
+          value={`${Math.round(focus.projectionMinutes)} min`}
+          sub={focus.projectionMinutes <= 100 ? 'fits 100-min budget' : `${Math.round(focus.projectionMinutes - 100)} min over`}
+        />
+      </div>
+      <div className="mt-3">
+        <div className="text-xs uppercase text-faint">By domain</div>
+        <div className="mt-1 grid gap-1 text-sm md:grid-cols-3">
+          {pacing.byDomain.map((d) => (
+            <div key={d.domain} className="flex items-baseline justify-between rounded-lg border border-border bg-surface2 px-3 py-2">
+              <span className="capitalize text-muted">{d.domain}</span>
+              <span>{d.attempts === 0 ? '—' : formatHumanDuration(d.avgMs)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      {focus.status === 'red' && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          <Link to="/simulation" className="btn btn-primary">Run a full simulation</Link>
+          <Link to="/quiz?len=25" className="btn">25-question adaptive quiz</Link>
+        </div>
+      )}
+    </section>
   );
 }
 

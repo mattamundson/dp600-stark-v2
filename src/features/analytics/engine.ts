@@ -1,7 +1,20 @@
 // Aggregations + rollups consumed by the Analytics view and Dashboard.
 
-import type { Attempt, Confidence, Domain, Session } from '../../lib/schema';
+import type { Attempt, Confidence, Domain, Session, SessionMode } from '../../lib/schema';
 import { DOMAINS } from '../../lib/schema';
+
+/* ─── Exam-pacing constants ─────────────────────────────────────── */
+// DP-600 published format: 100-minute window, 40-60 question count.
+// Target band per question = total / max-Q .. total / min-Q.
+export const EXAM_TOTAL_MS = 100 * 60_000;
+export const EXAM_QUESTIONS_MIN = 40;
+export const EXAM_QUESTIONS_MAX = 60;
+export const TARGET_PER_Q_MS_LOW = EXAM_TOTAL_MS / EXAM_QUESTIONS_MAX;  // 100,000 ms (1:40)
+export const TARGET_PER_Q_MS_HIGH = EXAM_TOTAL_MS / EXAM_QUESTIONS_MIN; // 150,000 ms (2:30)
+// Yellow zone = up to 20% over high target before red. Red = projection blows the time budget.
+export const PACING_YELLOW_CEILING_MS = TARGET_PER_Q_MS_HIGH * 1.2;     // 180,000 ms (3:00)
+// "Q to project against" — 65 is a slightly conservative midpoint of the 40-60 published range.
+export const PROJECTION_QUESTIONS = 65;
 
 export interface DomainAccuracy {
   domain: Domain;
@@ -130,4 +143,94 @@ export function trend(attempts: Attempt[], bucketDays = 1, now = Date.now()): Tr
 
 export function finishedSessions(sessions: Session[]): Session[] {
   return sessions.filter((s) => Boolean(s.finishedAt && s.resultSummary)).sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0));
+}
+
+/* ─── Pacing summary ────────────────────────────────────────────── */
+
+export type PacingStatus = 'green' | 'yellow' | 'red' | 'insufficient';
+
+export interface PacingBucket {
+  source: 'all' | 'simulation' | 'adaptive';
+  attempts: number;
+  avgMs: number;
+  /** projected total minutes if EVERY exam question took this long */
+  projectionMinutes: number;
+  status: PacingStatus;
+}
+
+export interface PacingByDomain {
+  domain: Domain;
+  attempts: number;
+  avgMs: number;
+}
+
+export interface PacingSummary {
+  /** all attempts in the window with measured latency */
+  overall: PacingBucket;
+  /** simulation attempts only (skipped if simulation latency==0; falls back to all) */
+  simulationOrAll: PacingBucket;
+  /** non-simulation timed attempts (adaptive quiz / remediation) */
+  adaptive: PacingBucket;
+  /** per-domain avg ms across the window */
+  byDomain: PacingByDomain[];
+}
+
+const SIMULATION_MODES: SessionMode[] = ['simulation'];
+const ADAPTIVE_MODES: SessionMode[] = ['quiz-10', 'quiz-25', 'quiz-50', 'remediation-10', 'remediation-15', 'remediation-20'];
+
+function classify(avgMs: number, attempts: number): PacingStatus {
+  if (attempts < 5 || avgMs <= 0) return 'insufficient';
+  if (avgMs <= TARGET_PER_Q_MS_HIGH) return 'green';
+  if (avgMs <= PACING_YELLOW_CEILING_MS) return 'yellow';
+  return 'red';
+}
+
+function bucket(source: PacingBucket['source'], attempts: Attempt[]): PacingBucket {
+  const timed = attempts.filter((a) => a.latencyMs > 0);
+  const total = timed.length;
+  const avgMs = total === 0 ? 0 : timed.reduce((acc, a) => acc + a.latencyMs, 0) / total;
+  return {
+    source,
+    attempts: total,
+    avgMs,
+    projectionMinutes: total === 0 ? 0 : (avgMs * PROJECTION_QUESTIONS) / 60_000,
+    status: classify(avgMs, total)
+  };
+}
+
+/**
+ * Pacing summary over the supplied attempts. Pass attempts already filtered
+ * to a window (e.g. last 7 days via `recentWindow`). Sessions are needed to
+ * tag attempts as simulation vs adaptive — the Attempt itself doesn't carry
+ * mode, so we look up sessionId.
+ */
+export function pacingSummary(attempts: Attempt[], sessions: Session[]): PacingSummary {
+  const simSet = new Set(sessions.filter((s) => SIMULATION_MODES.includes(s.mode)).map((s) => s.id));
+  const adaptiveSet = new Set(sessions.filter((s) => ADAPTIVE_MODES.includes(s.mode)).map((s) => s.id));
+
+  const simAttempts = attempts.filter((a) => simSet.has(a.sessionId));
+  const adaptiveAttempts = attempts.filter((a) => adaptiveSet.has(a.sessionId));
+
+  const overall = bucket('all', attempts);
+  const simulationBucket = bucket('simulation', simAttempts);
+  // Simulation currently writes latencyMs=0 (engine.ts:97). Fall back to all-attempts when sim has no measurable latency.
+  const simulationOrAll: PacingBucket = simulationBucket.attempts > 0 && simulationBucket.avgMs > 0
+    ? simulationBucket
+    : { ...overall, source: 'simulation' };
+  const adaptive = bucket('adaptive', adaptiveAttempts);
+
+  const byDomainMap = new Map<Domain, { sum: number; total: number }>();
+  for (const a of attempts) {
+    if (a.latencyMs <= 0) continue;
+    const cur = byDomainMap.get(a.domain) ?? { sum: 0, total: 0 };
+    cur.sum += a.latencyMs;
+    cur.total += 1;
+    byDomainMap.set(a.domain, cur);
+  }
+  const byDomain: PacingByDomain[] = DOMAINS.map((d) => {
+    const v = byDomainMap.get(d) ?? { sum: 0, total: 0 };
+    return { domain: d, attempts: v.total, avgMs: v.total === 0 ? 0 : v.sum / v.total };
+  });
+
+  return { overall, simulationOrAll, adaptive, byDomain };
 }
