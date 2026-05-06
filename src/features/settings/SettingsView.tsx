@@ -99,7 +99,7 @@ export function SettingsView() {
               <option value="system">Follow system</option>
             </select>
           </label>
-          <label className="flex flex-col gap-2 text-sm">
+          <label className="flex flex-col gap-2 text-sm" id="exam-date">
             <span className="text-muted">Exam date</span>
             <input
               type="date"

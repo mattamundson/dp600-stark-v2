@@ -75,6 +75,20 @@ export function DashboardView() {
         </section>
       )}
 
+      {settings && !settings.examDateIso && (
+        <section className="panel border-primary/40 bg-primary/10">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-lg font-bold">Set your exam date</h2>
+              <p className="text-sm text-muted">
+                Unlocks the cockpit countdown, readiness pacing weighting, and "exam in N days" header. Takes 5 seconds.
+              </p>
+            </div>
+            <Link to="/settings#exam-date" className="btn btn-primary">Set exam date →</Link>
+          </div>
+        </section>
+      )}
+
       <section className="grid gap-4 md:grid-cols-3">
         <BankCard label="Questions" value={questionBank.length} target={220} to="/quiz?len=10" />
         <BankCard label="Flashcards" value={flashcards.length} target={120} to="/flashcards" />
