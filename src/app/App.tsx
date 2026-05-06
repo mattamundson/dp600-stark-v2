@@ -19,6 +19,8 @@ import { Last72HoursView } from '../features/cockpit/Last72HoursView';
 import { SimulationViewV2 } from '../features/simulation/SimulationViewV2';
 import { CheatSheetView } from '../features/cheat-sheet/CheatSheetView';
 import { MissedPatternsView } from '../features/analytics/MissedPatternsView';
+import { CalcGroupsLabView } from '../features/lab/CalcGroupsLabView';
+import { StarSchemaLabView } from '../features/lab/StarSchemaLabView';
 
 export function App() {
   return (
@@ -45,6 +47,8 @@ export function App() {
         <Route path="/simulation-v2" element={<SimulationViewV2 />} />
         <Route path="/cheat-sheet" element={<CheatSheetView />} />
         <Route path="/missed" element={<MissedPatternsView />} />
+        <Route path="/lab/calc-groups" element={<CalcGroupsLabView />} />
+        <Route path="/lab/star-schema" element={<StarSchemaLabView />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

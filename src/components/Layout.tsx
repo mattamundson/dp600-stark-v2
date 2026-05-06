@@ -18,6 +18,8 @@ const ROUTES = [
   { to: '/mastery/direct-lake', label: 'Direct Lake Mastery', short: 'DL' },
   { to: '/lab/component-picker', label: 'Lab · Component Picker', short: 'Pick' },
   { to: '/lab/kql-drill', label: 'Lab · KQL Mini-Drill', short: 'KQL' },
+  { to: '/lab/calc-groups', label: 'Lab · Calc Groups Code', short: 'CG' },
+  { to: '/lab/star-schema', label: 'Lab · Star Schema', short: 'Star' },
   { to: '/analytics', label: 'Progress Analytics', short: 'Stats' },
   { to: '/study-plan', label: 'Study Plan', short: 'Plan' },
   { to: '/reference', label: 'Reference Sheet', short: 'Ref' },
