@@ -4,6 +4,7 @@ import { HashRouter } from 'react-router-dom';
 import { App } from './app/App';
 import { SettingsProvider } from './app/providers/SettingsProvider';
 import { ToastProvider } from './app/providers/ToastProvider';
+import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 import './styles/globals.css';
 
 const root = document.getElementById('root');
@@ -16,6 +17,7 @@ ReactDOM.createRoot(root).render(
         <HashRouter>
           <App />
         </HashRouter>
+        <PwaUpdatePrompt />
       </ToastProvider>
     </SettingsProvider>
   </React.StrictMode>

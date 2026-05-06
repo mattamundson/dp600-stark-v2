@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSettings } from '../../app/providers/SettingsProvider';
 import { useToast } from '../../app/providers/ToastProvider';
-import { exportAll, importAll, ImportError, wipeAll } from '../../lib/storage/db';
+import { exportAll, importAll, ImportError, listAttempts, wipeAll } from '../../lib/storage/db';
 import { questionBank } from '../../data/questions';
 import { csvFile, downloadCsv } from '../../lib/utils/csv';
 
@@ -29,6 +29,34 @@ export function SettingsView() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     push('Exported study data', 'ok');
+  }
+
+  async function doExportAttemptsCsv() {
+    const attempts = await listAttempts();
+    const headers = [
+      'id', 'sessionId', 'questionId', 'ts', 'iso', 'domain', 'subtopic',
+      'difficulty', 'correct', 'partial', 'latencyMs', 'confidence',
+      'selectedOptionIds', 'selectedOrder'
+    ];
+    const rows = attempts.map((a) => [
+      a.id,
+      a.sessionId,
+      a.questionId,
+      a.ts,
+      new Date(a.ts).toISOString(),
+      a.domain,
+      a.subtopic,
+      a.difficulty,
+      a.correct ? 'true' : 'false',
+      a.partial ?? '',
+      a.latencyMs,
+      a.confidence,
+      (a.selectedOptionIds ?? []).join(','),
+      (a.selectedOrder ?? []).join(',')
+    ]);
+    const today = new Date().toISOString().slice(0, 10);
+    downloadCsv(`dp600-stark-attempts-${today}.csv`, csvFile(headers, rows));
+    push(`Exported ${attempts.length} attempts to CSV`, 'ok');
   }
 
   function doExportBankCsv() {
@@ -150,6 +178,7 @@ export function SettingsView() {
           <button className="btn btn-primary" onClick={() => void doExport()}>Export JSON</button>
           <button className="btn" onClick={() => fileRef.current?.click()}>Import JSON</button>
           <button className="btn" onClick={doExportBankCsv}>Export bank CSV</button>
+          <button className="btn" onClick={() => void doExportAttemptsCsv()}>Export attempts CSV</button>
           <button className="btn btn-danger" onClick={() => void doWipe()}>Wipe all data</button>
           <input
             ref={fileRef}
@@ -166,6 +195,7 @@ export function SettingsView() {
         <p className="mt-3 text-xs text-faint">
           JSON export includes settings, sessions, attempts, and SRS state — Import replaces existing data.
           Bank CSV exports the question bank only (id, prompt, options, answers, explanation) for peer review and audit.
+          Attempts CSV exports your answer history (one row per attempt) for spreadsheet analysis or off-device backup.
         </p>
       </section>
     </div>

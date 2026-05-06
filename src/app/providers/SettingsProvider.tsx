@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import { getSettings, updateSettings } from '../../lib/storage/db';
+import { getSettings, restoreFromShadowIfEmpty, updateSettings } from '../../lib/storage/db';
 import type { Settings } from '../../lib/schema';
 
 interface SettingsCtx {
@@ -21,6 +21,11 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       applyTheme(s.theme);
       applyReduceMotion(s.reduceMotion);
     });
+    // Best-effort DR: restore attempts/sessions from localStorage shadow if
+    // IndexedDB is empty (e.g., site-data clear). Runs in parallel with
+    // settings load so it never delays first paint. Restored data appears
+    // on next route mount that re-reads from IndexedDB.
+    void restoreFromShadowIfEmpty().catch(() => null);
   }, []);
 
   // Theme=system: react to OS preference changes live without requiring a patch.

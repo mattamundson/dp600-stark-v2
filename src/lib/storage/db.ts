@@ -77,6 +77,88 @@ export function getDb(): Promise<IDBPDatabase<DPDB>> {
 // for tests
 export function _resetDbForTests(): void {
   dbPromise = null;
+  if (flushTimer !== null) {
+    clearTimeout(flushTimer);
+    flushTimer = null;
+  }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(SHADOW_KEY_ATTEMPTS);
+      localStorage.removeItem(SHADOW_KEY_SESSIONS);
+    }
+  } catch {
+    /* noop */
+  }
+}
+
+/* ─── Shadow backup to localStorage (pre-exam DR) ────────────────────
+ * Browser storage clears (DevTools "Clear site data", profile reset,
+ * extension misbehavior) wipe IndexedDB but typically also localStorage.
+ * The shadow is not a true backup — it's belt-and-suspenders against
+ * an IndexedDB-specific corruption that leaves localStorage intact.
+ * Restore is automatic on next load when attempts table is empty.
+ */
+const SHADOW_KEY_ATTEMPTS = 'stark-v2:shadow:attempts';
+const SHADOW_KEY_SESSIONS = 'stark-v2:shadow:sessions';
+const SHADOW_FLUSH_MS = 500;
+let flushTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function flushShadow(): Promise<void> {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const db = await getDb();
+    const [attempts, sessions] = await Promise.all([
+      db.getAll('attempts'),
+      db.getAllFromIndex('sessions', 'by-startedAt')
+    ]);
+    localStorage.setItem(SHADOW_KEY_ATTEMPTS, JSON.stringify(attempts));
+    localStorage.setItem(SHADOW_KEY_SESSIONS, JSON.stringify(sessions));
+  } catch (e) {
+    // localStorage quota exceeded or db error — DR is best-effort
+    console.warn('[stark-v2] shadow flush failed', e);
+  }
+}
+
+function scheduleShadowFlush(): void {
+  if (typeof window === 'undefined') return;
+  if (flushTimer !== null) return;
+  flushTimer = setTimeout(() => {
+    flushTimer = null;
+    void flushShadow();
+  }, SHADOW_FLUSH_MS);
+}
+
+/**
+ * Restore attempts/sessions from localStorage if IndexedDB is empty.
+ * Called once on app mount. Returns counts restored, or null if no-op.
+ */
+export async function restoreFromShadowIfEmpty(): Promise<{ attempts: number; sessions: number } | null> {
+  try {
+    if (typeof localStorage === 'undefined') return null;
+    const db = await getDb();
+    const attemptsCount = await db.count('attempts');
+    if (attemptsCount > 0) return null;
+    const aRaw = localStorage.getItem(SHADOW_KEY_ATTEMPTS);
+    const sRaw = localStorage.getItem(SHADOW_KEY_SESSIONS);
+    if (!aRaw && !sRaw) return null;
+    let attempts: Attempt[] = [];
+    let sessions: Session[] = [];
+    try {
+      if (aRaw) attempts = JSON.parse(aRaw) as Attempt[];
+      if (sRaw) sessions = JSON.parse(sRaw) as Session[];
+    } catch {
+      return null;
+    }
+    if (attempts.length === 0 && sessions.length === 0) return null;
+    const tx = db.transaction(['attempts', 'sessions'], 'readwrite');
+    for (const a of attempts) await tx.objectStore('attempts').put(a);
+    for (const s of sessions) await tx.objectStore('sessions').put(s);
+    await tx.done;
+    return { attempts: attempts.length, sessions: sessions.length };
+  } catch (e) {
+    console.warn('[stark-v2] shadow restore failed', e);
+    return null;
+  }
 }
 
 /* ─── settings ──────────────────────────────────────── */
@@ -117,6 +199,7 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
 export async function saveSession(s: Session): Promise<void> {
   const db = await getDb();
   await db.put('sessions', s);
+  scheduleShadowFlush();
 }
 
 export async function getSession(id: string): Promise<Session | undefined> {
@@ -143,6 +226,7 @@ export async function getActiveSimulation(): Promise<Session | undefined> {
 export async function saveAttempt(a: Attempt): Promise<void> {
   const db = await getDb();
   await db.put('attempts', a);
+  scheduleShadowFlush();
 }
 
 export async function listAttempts(): Promise<Attempt[]> {

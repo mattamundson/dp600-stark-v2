@@ -12,6 +12,7 @@ import { daysBetween } from '../../lib/utils/time';
 import { DangerousWeakSpotsPanel } from '../../components/DangerousWeakSpotsPanel';
 import { calibrate } from '../analytics/calibration';
 import { rateReadiness, recommendNextBlock } from '../analytics/readiness';
+import { studyStreak, todayStats } from './streak';
 
 export function DashboardView() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -29,6 +30,8 @@ export function DashboardView() {
 
   const readiness = attempts.length ? readinessFromAttempts(attempts) : null;
   const calibration = useMemo(() => (attempts.length ? calibrate(attempts) : null), [attempts]);
+  const today = useMemo(() => todayStats(attempts, Date.now()), [attempts]);
+  const streak = useMemo(() => studyStreak(attempts, Date.now()), [attempts]);
   const readinessV2 = useMemo(() => (attempts.length ? rateReadiness(attempts, questionBank) : null), [attempts]);
   const nextBlock = useMemo(
     () => (readinessV2 ? recommendNextBlock(readinessV2, attempts, questionBank) : null),
@@ -90,7 +93,34 @@ export function DashboardView() {
       )}
 
       <section className="grid gap-4 md:grid-cols-3">
+        <div className="panel">
+          <div className="text-xs uppercase text-faint">Today</div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold">{today.attemptsToday}</span>
+            <span className="text-sm text-muted">attempts</span>
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            {today.attemptsToday > 0
+              ? `${today.correctToday}/${today.attemptsToday} · ${Math.round(today.accuracyToday * 100)}% accuracy`
+              : 'No attempts today yet.'}
+          </div>
+        </div>
+        <div className="panel">
+          <div className="text-xs uppercase text-faint">Daily streak</div>
+          <div className="mt-1 flex items-baseline gap-2">
+            <span className="font-display text-3xl font-bold">{streak}</span>
+            <span className="text-sm text-muted">{streak === 1 ? 'day' : 'days'}</span>
+          </div>
+          <div className="mt-1 text-xs text-muted">
+            {streak === 0
+              ? 'Hit 10 attempts today to start a streak.'
+              : `≥10 attempts/day. Today ${today.attemptsToday >= 10 ? 'qualifies' : `needs ${10 - today.attemptsToday} more`}.`}
+          </div>
+        </div>
         <BankCard label="Questions" value={questionBank.length} target={220} to="/quiz?len=10" />
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2">
         <BankCard label="Flashcards" value={flashcards.length} target={120} to="/flashcards" />
         <BankCard label="Scenario sets" value={scenarios.length} target={15} to="/scenarios" />
       </section>
