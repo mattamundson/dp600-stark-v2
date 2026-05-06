@@ -94,7 +94,7 @@ function CountdownBanner({
           <input
             id="cockpit-exam-date"
             type="date"
-            className="input w-44"
+            className="input w-full sm:w-44"
             value={examDate ? examDate.toISOString().slice(0, 10) : ''}
             onChange={(e) => onDateChange(e.target.value)}
           />
@@ -223,12 +223,12 @@ export function Last72HoursView() {
 
       <DisciplineReminders />
 
-      <footer className="panel-tight flex items-center justify-between gap-4">
-        <div>
+      <footer className="panel-tight flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-text">Exam Trap Reference Sheet</p>
           <p className="text-xs text-muted">Quick-scan the highest-frequency traps before you walk in.</p>
         </div>
-        <Link to="/reference?focus=traps" className="btn btn-primary shrink-0">
+        <Link to="/reference?focus=traps" className="btn btn-primary w-full shrink-0 sm:w-auto">
           Open trap sheet →
         </Link>
       </footer>

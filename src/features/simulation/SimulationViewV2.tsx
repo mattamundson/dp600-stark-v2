@@ -425,7 +425,7 @@ function PaletteV2({
   const ids = session.questionIds.slice(0, total);
   return (
     <div className="panel-tight">
-      <div className="grid grid-cols-10 gap-1 sm:grid-cols-13 md:grid-cols-[repeat(15,minmax(0,1fr))] lg:grid-cols-[repeat(20,minmax(0,1fr))]">
+      <div className="grid grid-cols-8 gap-1 sm:grid-cols-10 md:grid-cols-[repeat(15,minmax(0,1fr))] lg:grid-cols-[repeat(20,minmax(0,1fr))]">
         {ids.map((id, i) => {
           const ans = session.snapshot?.answers[id];
           const answered = ans && (ans.selectedOptionIds?.length || ans.selectedOrder?.length);
@@ -443,7 +443,7 @@ function PaletteV2({
               key={id}
               onClick={() => onJump(i)}
               aria-current={i === cursor ? 'true' : undefined}
-              className={`h-7 rounded border text-xs ${cls}`}
+              className={`h-10 rounded border text-xs sm:h-8 md:h-7 ${cls}`}
               title={`Q${i + 1}${isFlagged ? ' · flagged' : ''}${answered ? ' · answered' : ''}`}
             >
               {i + 1}
