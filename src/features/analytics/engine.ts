@@ -198,6 +198,51 @@ function bucket(source: PacingBucket['source'], attempts: Attempt[]): PacingBuck
   };
 }
 
+export interface PacingTrendPoint {
+  sessionId: string;
+  startedAt: number;
+  medianMs: number;
+  attempts: number;
+  mode: SessionMode;
+}
+
+/**
+ * Per-session median latency over the most recent N finished sessions.
+ * Returned in chronological order (oldest first) so a sparkline reads
+ * left → right with the latest session as the rightmost point. Sessions
+ * with zero measurable-latency attempts (e.g. legacy sims) are skipped.
+ */
+export function pacingTrend(
+  attempts: Attempt[],
+  sessions: Session[],
+  n = 10
+): PacingTrendPoint[] {
+  const finished = sessions.filter((s) => s.finishedAt).sort((a, b) => b.finishedAt! - a.finishedAt!).slice(0, n);
+  const bySession = new Map<string, Attempt[]>();
+  for (const a of attempts) {
+    if (a.latencyMs <= 0) continue;
+    const arr = bySession.get(a.sessionId) ?? [];
+    arr.push(a);
+    bySession.set(a.sessionId, arr);
+  }
+  const points: PacingTrendPoint[] = [];
+  for (const s of finished) {
+    const sAttempts = bySession.get(s.id) ?? [];
+    if (sAttempts.length === 0) continue;
+    const sorted = sAttempts.map((a) => a.latencyMs).sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    const medianMs = sorted.length % 2 === 0 ? (sorted[mid - 1] + sorted[mid]) / 2 : sorted[mid];
+    points.push({
+      sessionId: s.id,
+      startedAt: s.startedAt,
+      medianMs,
+      attempts: sAttempts.length,
+      mode: s.mode
+    });
+  }
+  return points.sort((a, b) => a.startedAt - b.startedAt);
+}
+
 /**
  * Pacing summary over the supplied attempts. Pass attempts already filtered
  * to a window (e.g. last 7 days via `recentWindow`). Sessions are needed to

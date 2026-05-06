@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listAttempts, listSessions } from '../../lib/storage/db';
-import { accuracyByDomain, accuracyBySubtopic, calibration, recentWindow, timePerTopic, trend, finishedSessions, pacingSummary, PROJECTION_QUESTIONS, type PacingSummary } from './engine';
+import { accuracyByDomain, accuracyBySubtopic, calibration, recentWindow, timePerTopic, trend, finishedSessions, pacingSummary, pacingTrend, PROJECTION_QUESTIONS, TARGET_PER_Q_MS_HIGH, type PacingSummary, type PacingTrendPoint } from './engine';
 import { weakSpots } from '../remediation/engine';
 import { readinessFromAttempts } from '../../lib/scoring/score';
 import type { Attempt, Session } from '../../lib/schema';
@@ -40,6 +40,7 @@ export function AnalyticsView() {
   const sims = finishedSessions(sessions).filter((s) => s.mode === 'simulation');
   const spots = weakSpots(attempts);
   const pacing = pacingSummary(last7, sessions);
+  const pacingHistory = pacingTrend(attempts, sessions, 12);
 
   return (
     <div className="flex flex-col gap-4">
@@ -112,6 +113,8 @@ export function AnalyticsView() {
       </section>
 
       <PacingPanel pacing={pacing} />
+
+      <PacingTrendPanel history={pacingHistory} />
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="panel">
@@ -206,6 +209,69 @@ function PacingPanel({ pacing }: { pacing: PacingSummary }) {
         </div>
       )}
     </section>
+  );
+}
+
+function PacingTrendPanel({ history }: { history: PacingTrendPoint[] }) {
+  if (history.length < 2) {
+    return (
+      <section className="panel">
+        <h2 className="mb-2 text-lg font-bold">Pacing trend</h2>
+        <p className="text-sm text-muted">Need at least 2 finished sessions with timed attempts to plot a trend.</p>
+      </section>
+    );
+  }
+  const seconds = history.map((p) => p.medianMs / 1000);
+  const targetSec = TARGET_PER_Q_MS_HIGH / 1000;
+  const latest = history[history.length - 1];
+  const earliest = history[0];
+  const deltaSec = (latest.medianMs - earliest.medianMs) / 1000;
+  const deltaTone = deltaSec < -5 ? 'text-ok' : deltaSec > 5 ? 'text-warn' : 'text-muted';
+  const deltaSign = deltaSec > 0 ? '+' : '';
+
+  return (
+    <section className="panel">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-bold">Pacing trend</h2>
+        <span className="text-xs text-faint">last {history.length} sessions · target ≤ {Math.round(targetSec)}s/Q</span>
+      </div>
+      <SecondsSpark points={seconds} targetSec={targetSec} />
+      <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
+        <div>
+          <div className="text-xs uppercase text-faint">Latest median</div>
+          <div className="font-display text-2xl font-bold">{seconds[seconds.length - 1].toFixed(1)}s</div>
+        </div>
+        <div>
+          <div className="text-xs uppercase text-faint">Δ vs earliest</div>
+          <div className={`font-display text-2xl font-bold ${deltaTone}`}>{deltaSign}{deltaSec.toFixed(1)}s</div>
+        </div>
+        <p className="text-xs text-muted">
+          Negative delta = getting faster. Positive delta with red bars = pacing regression — drill timed quizzes before the exam.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function SecondsSpark({ points, targetSec }: { points: number[]; targetSec: number }) {
+  const w = 480;
+  const h = 100;
+  const max = Math.max(targetSec * 1.5, ...points) || 1;
+  const barW = (w / points.length) * 0.7;
+  const gap = (w / points.length) * 0.3;
+  const targetY = h - (targetSec / max) * h;
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-24 w-full" role="img" aria-label="Pacing trend by session">
+      {points.map((p, i) => {
+        const x = i * (barW + gap);
+        const barH = (p / max) * h;
+        const y = h - barH;
+        const tone = p > targetSec * 1.2 ? 'rgb(var(--bad))' : p > targetSec ? 'rgb(var(--warn))' : 'rgb(var(--ok))';
+        return <rect key={i} x={x} y={y} width={barW} height={barH} fill={tone} />;
+      })}
+      <line x1="0" x2={w} y1={targetY} y2={targetY} stroke="rgb(var(--primary))" strokeWidth="1.5" strokeDasharray="4 4" />
+      <line x1="0" x2={w} y1={h} y2={h} stroke="rgb(var(--border))" />
+    </svg>
   );
 }
 
