@@ -120,11 +120,11 @@ export function CheatSheetView() {
           </div>
           <button
             type="button"
-            className="btn"
+            className="btn btn-primary"
             onClick={() => window.print()}
-            title="Print or save as PDF (Ctrl+P)"
+            title="Opens browser print dialog. Choose 'Save as PDF' as the destination, or print directly."
           >
-            Print / PDF
+            Save as PDF
           </button>
         </div>
       </header>

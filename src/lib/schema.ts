@@ -235,6 +235,13 @@ export interface Settings {
    * 'legacy' in the old SimulationView (no behavior change for existing users).
    */
   simRealismMode?: 'dp600' | 'dp600-quick' | 'legacy';
+  /**
+   * Subtopic -> epoch ms when the user marked a missed-pattern group as
+   * resolved on /missed. The view filters groups whose most-recent miss is
+   * older than this timestamp; a new miss after resolution re-surfaces the
+   * group automatically.
+   */
+  resolvedMissedPatterns?: Record<string, number>;
 }
 
 /** Single object stored under keyPath 'k' = 'state' */

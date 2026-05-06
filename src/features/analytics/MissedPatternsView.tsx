@@ -1,10 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listAttempts } from '../../lib/storage/db';
 import { questionBank } from '../../data/questions';
 import { groupMissedAttempts, type MissedGroup } from './missed-patterns';
 import type { Attempt } from '../../lib/schema';
 import { DOMAIN_LABEL } from '../../lib/schema';
+import { useSettings } from '../../app/providers/SettingsProvider';
 
 /** Format a timestamp as a relative string, e.g. "2 hours ago". */
 function relativeTime(ts: number): string {
@@ -27,6 +28,8 @@ function truncate(text: string, max = 120): string {
 export function MissedPatternsView() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
   const [loaded, setLoaded] = useState(false);
+  const [showResolved, setShowResolved] = useState(false);
+  const { settings, patch } = useSettings();
 
   useEffect(() => {
     void listAttempts().then((a) => {
@@ -34,6 +37,35 @@ export function MissedPatternsView() {
       setLoaded(true);
     });
   }, []);
+
+  const allGroups = useMemo(() => groupMissedAttempts(attempts, questionBank), [attempts]);
+
+  const resolvedMap = settings?.resolvedMissedPatterns ?? {};
+  const { activeGroups, resolvedGroups } = useMemo(() => {
+    const active: MissedGroup[] = [];
+    const resolved: MissedGroup[] = [];
+    for (const g of allGroups) {
+      const resolvedAt = resolvedMap[g.subtopic];
+      const hasNewMiss = resolvedAt
+        ? g.recentMisses.some((m) => m.timestamp > resolvedAt)
+        : true;
+      if (resolvedAt && !hasNewMiss) resolved.push(g);
+      else active.push(g);
+    }
+    return { activeGroups: active, resolvedGroups: resolved };
+  }, [allGroups, resolvedMap]);
+
+  async function markResolved(subtopic: string) {
+    await patch({
+      resolvedMissedPatterns: { ...resolvedMap, [subtopic]: Date.now() }
+    });
+  }
+
+  async function unresolve(subtopic: string) {
+    const next = { ...resolvedMap };
+    delete next[subtopic];
+    await patch({ resolvedMissedPatterns: next });
+  }
 
   if (!loaded) {
     return (
@@ -43,9 +75,7 @@ export function MissedPatternsView() {
     );
   }
 
-  const groups = groupMissedAttempts(attempts, questionBank);
-
-  if (groups.length === 0) {
+  if (allGroups.length === 0) {
     return (
       <section className="panel">
         <h1 className="text-xl font-bold">Wrong-answer patterns</h1>
@@ -59,28 +89,73 @@ export function MissedPatternsView() {
     );
   }
 
-  const totalMisses = groups.reduce((s, g) => s + g.missCount, 0);
+  const totalMisses = allGroups.reduce((s, g) => s + g.missCount, 0);
   const sessionSet = new Set(attempts.map((a) => a.sessionId));
 
   return (
     <div className="flex flex-col gap-4">
       <header className="panel">
-        <h1 className="text-xl font-bold">Wrong-answer patterns</h1>
-        <p className="mt-1 text-sm text-muted">
-          {groups.length} subtopic{groups.length === 1 ? '' : 's'} where you've missed{' '}
-          <strong>{totalMisses}</strong> time{totalMisses === 1 ? '' : 's'} across{' '}
-          {sessionSet.size} session{sessionSet.size === 1 ? '' : 's'}
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h1 className="text-xl font-bold">Wrong-answer patterns</h1>
+            <p className="mt-1 text-sm text-muted">
+              {activeGroups.length} active subtopic{activeGroups.length === 1 ? '' : 's'} ·{' '}
+              <strong>{totalMisses}</strong> total miss{totalMisses === 1 ? '' : 'es'} across{' '}
+              {sessionSet.size} session{sessionSet.size === 1 ? '' : 's'}
+              {resolvedGroups.length > 0 && (
+                <> · <span className="text-ok">{resolvedGroups.length} resolved</span></>
+              )}
+            </p>
+          </div>
+          {resolvedGroups.length > 0 && (
+            <button
+              type="button"
+              className="btn btn-ghost text-xs"
+              onClick={() => setShowResolved((v) => !v)}
+            >
+              {showResolved ? 'Hide resolved' : `Show ${resolvedGroups.length} resolved`}
+            </button>
+          )}
+        </div>
       </header>
 
-      {groups.map((group) => (
-        <GroupPanel key={group.subtopic} group={group} />
+      {activeGroups.map((group) => (
+        <GroupPanel
+          key={group.subtopic}
+          group={group}
+          onResolve={() => void markResolved(group.subtopic)}
+        />
       ))}
+
+      {showResolved && resolvedGroups.length > 0 && (
+        <>
+          <h2 className="mt-4 text-sm font-bold uppercase tracking-wide text-faint">
+            Resolved
+          </h2>
+          {resolvedGroups.map((group) => (
+            <GroupPanel
+              key={`resolved-${group.subtopic}`}
+              group={group}
+              resolved
+              resolvedAt={resolvedMap[group.subtopic]}
+              onUnresolve={() => void unresolve(group.subtopic)}
+            />
+          ))}
+        </>
+      )}
     </div>
   );
 }
 
-function GroupPanel({ group }: { group: MissedGroup }) {
+interface GroupPanelProps {
+  group: MissedGroup;
+  resolved?: boolean;
+  resolvedAt?: number;
+  onResolve?: () => void;
+  onUnresolve?: () => void;
+}
+
+function GroupPanel({ group, resolved, resolvedAt, onResolve, onUnresolve }: GroupPanelProps) {
   const accuracyPct = Math.round(group.accuracy * 100);
   const accuracyClass =
     group.accuracy < 0.5
@@ -97,7 +172,7 @@ function GroupPanel({ group }: { group: MissedGroup }) {
         : 'badge-ok';
 
   return (
-    <section className="panel flex flex-col gap-3">
+    <section className={`panel flex flex-col gap-3 ${resolved ? 'opacity-70' : ''}`}>
       {/* ── Header row ── */}
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="flex flex-wrap items-center gap-2">
@@ -106,6 +181,11 @@ function GroupPanel({ group }: { group: MissedGroup }) {
           {group.recentMisses.some((m) => m.isConfidentMiss) && (
             <span className="badge badge-bad" title="You missed at least one of these while confident">
               Confident miss
+            </span>
+          )}
+          {resolved && (
+            <span className="badge badge-ok" title={resolvedAt ? `Marked resolved ${relativeTime(resolvedAt)}` : ''}>
+              Resolved
             </span>
           )}
         </div>
@@ -119,14 +199,34 @@ function GroupPanel({ group }: { group: MissedGroup }) {
         </div>
       </div>
 
-      {/* ── Drill CTA ── */}
-      <div>
+      {/* ── Drill / Resolve CTAs ── */}
+      <div className="flex flex-wrap gap-2">
         <Link
           to={`/remediation?subtopic=${encodeURIComponent(group.subtopic)}&size=10`}
           className="btn btn-primary"
         >
           Drill these
         </Link>
+        {!resolved && onResolve && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onResolve}
+            title="Hide this subtopic until a new miss is logged"
+          >
+            Mark resolved
+          </button>
+        )}
+        {resolved && onUnresolve && (
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={onUnresolve}
+            title="Remove the resolved flag and re-surface this subtopic"
+          >
+            Unresolve
+          </button>
+        )}
       </div>
 
       {/* ── Collapsible miss list ── */}
