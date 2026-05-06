@@ -21,6 +21,7 @@ import { CheatSheetView } from '../features/cheat-sheet/CheatSheetView';
 import { MissedPatternsView } from '../features/analytics/MissedPatternsView';
 import { CalcGroupsLabView } from '../features/lab/CalcGroupsLabView';
 import { StarSchemaLabView } from '../features/lab/StarSchemaLabView';
+import { DayStudyView } from '../features/study-docs/DayStudyView';
 
 export function App() {
   return (
@@ -49,6 +50,7 @@ export function App() {
         <Route path="/missed" element={<MissedPatternsView />} />
         <Route path="/lab/calc-groups" element={<CalcGroupsLabView />} />
         <Route path="/lab/star-schema" element={<StarSchemaLabView />} />
+        <Route path="/study/day/:n" element={<DayStudyView />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

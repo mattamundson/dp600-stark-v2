@@ -88,14 +88,30 @@ export function StudyPlanView() {
                 <h3 className="mt-2 text-lg font-semibold">{d.title}</h3>
                 <p className="text-sm text-muted">{d.focus}</p>
                 <ul className="mt-3 space-y-1 text-sm">
-                  {d.blocks.map((b, i) => (
-                    <li key={i} className="flex items-center justify-between">
-                      <span><span className="badge mr-2 capitalize">{b.kind}</span>{b.target}</span>
-                      <span className="text-muted">{b.minutes}m</span>
-                    </li>
-                  ))}
+                  {d.blocks.map((b, i) => {
+                    const idx = b.target.indexOf(':');
+                    const prefix = idx === -1 ? b.target : b.target.slice(0, idx);
+                    const value = idx === -1 ? '' : b.target.slice(idx + 1);
+                    let to = `/study/day/${d.day}`;
+                    if (b.kind === 'reference') to = `/study/day/${d.day}#${value}`;
+                    else if (b.kind === 'flashcards') to = `/flashcards?deck=${value}`;
+                    else if (b.kind === 'quiz') to = `/quiz?domain=${prefix === 'domain' ? value : d.domains[0]}&len=25`;
+                    else if (b.kind === 'scenario') to = `/scenarios/${value}`;
+                    else if (b.kind === 'simulation') to = '/simulation-v2';
+                    else if (b.kind === 'remediation') to = '/remediation';
+                    return (
+                      <li key={i} className="flex items-center justify-between">
+                        <Link to={to} className="flex flex-1 items-center gap-1 text-muted hover:text-text transition-colors">
+                          <span className="badge capitalize">{b.kind}</span>
+                          <span className="truncate">{value || b.target}</span>
+                        </Link>
+                        <span className="ml-2 shrink-0 text-faint">{b.minutes}m</span>
+                      </li>
+                    );
+                  })}
                 </ul>
                 <div className="mt-3 flex flex-wrap gap-2">
+                  <Link to={`/study/day/${d.day}`} className="btn btn-primary">Study</Link>
                   <Link to="/quiz?len=25" className="btn btn-ghost">Quiz</Link>
                   <Link to="/flashcards" className="btn btn-ghost">Cards</Link>
                   <Link to="/remediation" className="btn btn-ghost">Remediate</Link>
