@@ -76,3 +76,32 @@ function bucketByDay(attempts: Attempt[]): Map<string, number> {
   }
   return m;
 }
+
+export interface DailyCount {
+  /** YYYY-MM-DD local-date key */
+  date: string;
+  /** Day-of-month (1-31) for compact rendering */
+  dayOfMonth: number;
+  count: number;
+}
+
+/**
+ * Returns the last `days` days of attempt counts, oldest first. Days with
+ * zero attempts are present with count=0 (so the renderer can produce a
+ * fixed-width heatmap regardless of activity).
+ */
+export function dailyAttemptCounts(attempts: Attempt[], now: number, days = 14): DailyCount[] {
+  const counts = bucketByDay(attempts);
+  const out: DailyCount[] = [];
+  const startMs = startOfDay(now) - (days - 1) * 86_400_000;
+  for (let i = 0; i < days; i++) {
+    const ms = startMs + i * 86_400_000;
+    const k = dayKey(ms);
+    out.push({
+      date: k,
+      dayOfMonth: new Date(ms).getDate(),
+      count: counts.get(k) ?? 0
+    });
+  }
+  return out;
+}

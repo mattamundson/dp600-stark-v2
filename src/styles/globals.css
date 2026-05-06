@@ -231,4 +231,16 @@
   .text-muted, .text-faint {
     color: rgb(51, 51, 51) !important;
   }
+
+  /* /history/:sessionId — expand all collapsed details, page-break between
+     question cards, hide nav buttons inside the page. */
+  details:not([open]) > *:not(summary) { display: block !important; }
+  details > summary { display: list-item !important; }
+  /* Each "panel" inside the history detail prints as its own block; the
+     general .panel rules above already handle break-inside: avoid. */
 }
+
+/* Exam-day focus mode — set by SettingsProvider when settings.examDayMode
+   is true. Hides decorative dashboard / cockpit / analytics panels so only
+   the active question + timer + minimal controls remain visible. */
+html.exam-day .exam-day-hide { display: none !important; }

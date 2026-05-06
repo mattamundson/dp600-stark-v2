@@ -30,8 +30,20 @@ const ROUTES = [
 export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[280px_1fr]">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-50 focus:rounded-xl focus:border focus:border-primary focus:bg-bg focus:px-3 focus:py-2 focus:text-sm focus:text-text"
+      >
+        Skip to main content
+      </a>
       <Sidebar />
-      <main className="flex min-w-0 flex-col gap-4 p-4 pb-24 lg:p-6 lg:pb-6">{children}</main>
+      <main
+        id="main-content"
+        role="main"
+        className="flex min-w-0 flex-col gap-4 p-4 pb-24 lg:p-6 lg:pb-6"
+      >
+        {children}
+      </main>
       <MobileBar />
     </div>
   );

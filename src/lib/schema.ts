@@ -242,6 +242,13 @@ export interface Settings {
    * group automatically.
    */
   resolvedMissedPatterns?: Record<string, number>;
+  /**
+   * Exam-day focus mode. When true, the SettingsProvider toggles a
+   * `.exam-day` class on `<html>`, which in globals.css hides decorative
+   * panels on Dashboard / Cockpit / Analytics so only timer + question +
+   * options + flag/skip controls remain. Off by default.
+   */
+  examDayMode?: boolean;
 }
 
 /** Single object stored under keyPath 'k' = 'state' */

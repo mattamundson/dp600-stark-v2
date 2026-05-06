@@ -155,6 +155,14 @@ export function SettingsView() {
             />
             Beep at final minute (simulation)
           </label>
+          <label className="flex items-center gap-2 text-sm" title="Hides decorative dashboard / cockpit panels so only timer + question + options remain. Use during your final week.">
+            <input
+              type="checkbox"
+              checked={settings.examDayMode ?? false}
+              onChange={(e) => void patch({ examDayMode: e.target.checked })}
+            />
+            Exam-day focus mode
+          </label>
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted">Simulation realism mode</span>
             <select

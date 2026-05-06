@@ -20,6 +20,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
       setLoading(false);
       applyTheme(s.theme);
       applyReduceMotion(s.reduceMotion);
+      applyExamDayMode(s.examDayMode ?? false);
     });
     // Best-effort DR: restore attempts/sessions from localStorage shadow if
     // IndexedDB is empty (e.g., site-data clear). Runs in parallel with
@@ -42,6 +43,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(next);
     if (p.theme !== undefined) applyTheme(next.theme);
     if (p.reduceMotion !== undefined) applyReduceMotion(next.reduceMotion);
+    if (p.examDayMode !== undefined) applyExamDayMode(next.examDayMode ?? false);
   }, []);
 
   return <Ctx.Provider value={{ settings, loading, patch }}>{children}</Ctx.Provider>;
@@ -58,6 +60,10 @@ function applyTheme(theme: Settings['theme']) {
 
 function applyReduceMotion(on: boolean) {
   document.documentElement.classList.toggle('reduce-motion', on);
+}
+
+function applyExamDayMode(on: boolean) {
+  document.documentElement.classList.toggle('exam-day', on);
 }
 
 export function useSettings(): SettingsCtx {

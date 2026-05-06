@@ -5,6 +5,7 @@ import { App } from './app/App';
 import { SettingsProvider } from './app/providers/SettingsProvider';
 import { ToastProvider } from './app/providers/ToastProvider';
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
+import { KeyboardShortcutsOverlay } from './components/KeyboardShortcutsOverlay';
 import './styles/globals.css';
 
 const root = document.getElementById('root');
@@ -18,6 +19,7 @@ ReactDOM.createRoot(root).render(
           <App />
         </HashRouter>
         <PwaUpdatePrompt />
+        <KeyboardShortcutsOverlay />
       </ToastProvider>
     </SettingsProvider>
   </React.StrictMode>

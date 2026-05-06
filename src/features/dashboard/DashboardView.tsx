@@ -12,7 +12,8 @@ import { daysBetween } from '../../lib/utils/time';
 import { DangerousWeakSpotsPanel } from '../../components/DangerousWeakSpotsPanel';
 import { calibrate } from '../analytics/calibration';
 import { rateReadiness, recommendNextBlock } from '../analytics/readiness';
-import { studyStreak, todayStats } from './streak';
+import { dailyAttemptCounts, studyStreak, todayStats, type DailyCount } from './streak';
+import { sinceLastSim, type SimDelta } from './sim-delta';
 
 export function DashboardView() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -32,6 +33,8 @@ export function DashboardView() {
   const calibration = useMemo(() => (attempts.length ? calibrate(attempts) : null), [attempts]);
   const today = useMemo(() => todayStats(attempts, Date.now()), [attempts]);
   const streak = useMemo(() => studyStreak(attempts, Date.now()), [attempts]);
+  const heatmap = useMemo(() => dailyAttemptCounts(attempts, Date.now(), 14), [attempts]);
+  const simDelta = useMemo(() => sinceLastSim(sessions, attempts), [sessions, attempts]);
   const readinessV2 = useMemo(() => (attempts.length ? rateReadiness(attempts, questionBank) : null), [attempts]);
   const nextBlock = useMemo(
     () => (readinessV2 ? recommendNextBlock(readinessV2, attempts, questionBank) : null),
@@ -124,6 +127,10 @@ export function DashboardView() {
         <BankCard label="Flashcards" value={flashcards.length} target={120} to="/flashcards" />
         <BankCard label="Scenario sets" value={scenarios.length} target={15} to="/scenarios" />
       </section>
+
+      <HeatmapPanel cells={heatmap} />
+
+      {simDelta && <SinceLastSimPanel delta={simDelta} />}
 
       <DangerousWeakSpotsPanel attempts={attempts} />
 
@@ -238,6 +245,84 @@ export function DashboardView() {
         </div>
       </section>
     </div>
+  );
+}
+
+function HeatmapPanel({ cells }: { cells: DailyCount[] }) {
+  const max = Math.max(1, ...cells.map((c) => c.count));
+  function intensity(c: number): string {
+    if (c === 0) return 'bg-surface2 text-faint';
+    const ratio = c / max;
+    if (ratio < 0.25) return 'bg-primary/20 text-text';
+    if (ratio < 0.5) return 'bg-primary/40 text-text';
+    if (ratio < 0.75) return 'bg-primary/60 text-white';
+    return 'bg-primary text-white';
+  }
+  const total = cells.reduce((s, c) => s + c.count, 0);
+  const activeDays = cells.filter((c) => c.count > 0).length;
+  return (
+    <section className="panel exam-day-hide">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-bold">14-day activity</h2>
+        <span className="text-xs text-muted">
+          {total} attempt{total === 1 ? '' : 's'} · {activeDays} of 14 days active
+        </span>
+      </div>
+      <div className="grid grid-cols-7 gap-1.5 sm:grid-cols-14">
+        {cells.map((c) => (
+          <div
+            key={c.date}
+            className={`flex h-9 items-center justify-center rounded-md text-[11px] font-mono ${intensity(c.count)}`}
+            title={`${c.date} — ${c.count} attempt${c.count === 1 ? '' : 's'}`}
+          >
+            {c.dayOfMonth}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SinceLastSimPanel({ delta }: { delta: SimDelta }) {
+  const scoreSign = delta.scoreDelta > 0 ? '+' : '';
+  const scoreTone = delta.scoreDelta > 0 ? 'text-ok' : delta.scoreDelta < 0 ? 'text-bad' : 'text-muted';
+  const accSign = delta.accuracyDelta > 0 ? '+' : '';
+  const accTone = delta.accuracyDelta > 0 ? 'text-ok' : delta.accuracyDelta < 0 ? 'text-bad' : 'text-muted';
+  return (
+    <section className="panel exam-day-hide">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-bold">Since last simulation</h2>
+        <span className="text-xs text-muted">
+          {delta.attemptsBetween} attempt{delta.attemptsBetween === 1 ? '' : 's'} between sims
+        </span>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        <div>
+          <div className="text-xs uppercase text-faint">Score</div>
+          <div className="font-display text-2xl font-bold">{delta.curr.scaledScore}</div>
+          <div className={`text-xs ${scoreTone}`}>
+            {scoreSign}{delta.scoreDelta} vs {delta.prev.scaledScore}
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase text-faint">Accuracy</div>
+          <div className="font-display text-2xl font-bold">{Math.round(delta.curr.accuracy * 100)}%</div>
+          <div className={`text-xs ${accTone}`}>
+            {accSign}{Math.round(delta.accuracyDelta * 100)}pp vs {Math.round(delta.prev.accuracy * 100)}%
+          </div>
+        </div>
+        <div>
+          <div className="text-xs uppercase text-faint">Last sim</div>
+          <div className="text-sm">{new Date(delta.curr.finishedAt).toLocaleDateString()}</div>
+          <div className="text-xs text-muted">prev: {new Date(delta.prev.finishedAt).toLocaleDateString()}</div>
+        </div>
+      </div>
+      <div className="mt-3">
+        <Link className="btn btn-ghost text-xs" to={`/history/${delta.curr.sessionId}`}>
+          Review latest →
+        </Link>
+      </div>
+    </section>
   );
 }
 
