@@ -4,11 +4,13 @@ import { useSettings } from '../app/providers/SettingsProvider';
 import { listAttempts } from '../lib/storage/db';
 import { questionBank } from '../data/questions';
 
-const ROUTES = [
-  { to: '/', label: 'Dashboard', short: 'Home' },
-  { to: '/quiz', label: 'Adaptive Quiz', short: 'Quiz' },
-  { to: '/simulation', label: 'Full Simulation', short: 'Sim' },
-  { to: '/simulation-v2', label: 'Sim · 65Q Realism', short: 'Sim2' },
+type RouteItem = { to: string; label: string; short: string; icon?: string };
+
+const ROUTES: RouteItem[] = [
+  { to: '/', label: 'Dashboard', short: 'Home', icon: '⌂' },
+  { to: '/quiz', label: 'Adaptive Quiz', short: 'Quiz', icon: '❓' },
+  { to: '/simulation', label: 'Full Simulation', short: 'Sim', icon: '⚡' },
+  { to: '/simulation-v2', label: 'Sim · 65Q Realism', short: 'Sim2', icon: '\u{1F9EA}' },
   { to: '/cockpit', label: 'Last 72 Hours Cockpit', short: 'Cock' },
   { to: '/cheat-sheet', label: 'Exam Cheat Sheet', short: 'Sheet' },
   { to: '/syllabus', label: 'Syllabus Coverage', short: 'Syl' },
@@ -129,11 +131,15 @@ function MobileBar() {
             key={r.to}
             to={r.to}
             end={r.to === '/'}
+            aria-label={`${r.label} (${r.short})`}
             className={({ isActive }) =>
-              `flex items-center justify-center px-2 py-3 text-xs ${isActive ? 'text-primary' : 'text-muted'}`
+              `flex flex-col items-center justify-center gap-0.5 px-2 py-2 text-xs ${isActive ? 'text-primary' : 'text-muted'}`
             }
           >
-            {r.short}
+            <span aria-hidden="true" className="text-base leading-none">
+              {r.icon ?? '•'}
+            </span>
+            <span>{r.short}</span>
           </NavLink>
         ))}
         <button
@@ -141,9 +147,10 @@ function MobileBar() {
           aria-label="More navigation"
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className="flex items-center justify-center px-2 py-3 text-xs text-muted"
+          className="flex flex-col items-center justify-center gap-0.5 px-2 py-2 text-xs text-muted"
         >
-          More
+          <span aria-hidden="true" className="text-base leading-none">⋯</span>
+          <span>More</span>
         </button>
       </nav>
       {open && (

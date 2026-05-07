@@ -121,9 +121,10 @@ export function SettingsView() {
       <section className="panel">
         <h1 className="mb-3 text-xl font-bold">Settings</h1>
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted">Theme</span>
+          <div className="flex flex-col gap-2 text-sm">
+            <label htmlFor="setting-theme" className="text-muted">Theme</label>
             <select
+              id="setting-theme"
               className="input"
               value={settings.theme}
               onChange={(e) => void patch({ theme: e.target.value as typeof settings.theme })}
@@ -132,10 +133,11 @@ export function SettingsView() {
               <option value="light">Light</option>
               <option value="system">Follow system</option>
             </select>
-          </label>
-          <label className="flex flex-col gap-2 text-sm" id="exam-date">
-            <span className="text-muted">Exam date</span>
+          </div>
+          <div className="flex flex-col gap-2 text-sm">
+            <label htmlFor="setting-exam-date" className="text-muted">Exam date</label>
             <input
+              id="setting-exam-date"
               type="date"
               className="input"
               value={examDate}
@@ -144,37 +146,41 @@ export function SettingsView() {
                 void patch({ examDateIso: e.target.value ? new Date(e.target.value).toISOString() : undefined });
               }}
             />
-          </label>
-          <label className="flex items-center gap-2 text-sm">
+          </div>
+          <div className="flex items-center gap-2 text-sm">
             <input
+              id="setting-reduce-motion"
               type="checkbox"
               checked={settings.reduceMotion}
               onChange={(e) => void patch({ reduceMotion: e.target.checked })}
             />
-            Reduce motion
-          </label>
-          <label className="flex items-center gap-2 text-sm">
+            <label htmlFor="setting-reduce-motion">Reduce motion</label>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
             <input
+              id="setting-beep-final-minute"
               type="checkbox"
               checked={settings.beepOnFinalMinute}
               onChange={(e) => void patch({ beepOnFinalMinute: e.target.checked })}
             />
-            Beep at final minute (simulation)
-          </label>
-          <label className="flex items-center gap-2 text-sm" title="Hides decorative dashboard / cockpit panels so only timer + question + options remain. Use during your final week.">
+            <label htmlFor="setting-beep-final-minute">Beep at final minute (simulation)</label>
+          </div>
+          <div className="flex items-center gap-2 text-sm" title="Hides decorative dashboard / cockpit panels so only timer + question + options remain. Use during your final week.">
             <input
+              id="setting-exam-day-mode"
               type="checkbox"
               checked={settings.examDayMode ?? false}
               onChange={(e) => void patch({ examDayMode: e.target.checked })}
             />
-            Exam-day focus mode
-          </label>
-          <label
+            <label htmlFor="setting-exam-day-mode">Exam-day focus mode</label>
+          </div>
+          <div
             className="flex flex-col gap-2 text-sm"
             title="Minimum questions answered in a local-clock day for that day to count toward your daily streak. Must be at least 1; defaults to 10."
           >
-            <span className="text-muted">Daily-streak threshold (questions/day)</span>
+            <label htmlFor="setting-streak-min" className="text-muted">Daily-streak threshold (questions/day)</label>
             <input
+              id="setting-streak-min"
               type="number"
               min={1}
               step={1}
@@ -190,10 +196,11 @@ export function SettingsView() {
                 }
               }}
             />
-          </label>
-          <label className="flex flex-col gap-2 text-sm">
-            <span className="text-muted">Simulation realism mode</span>
+          </div>
+          <div className="flex flex-col gap-2 text-sm">
+            <label htmlFor="setting-sim-realism-mode" className="text-muted">Simulation realism mode</label>
             <select
+              id="setting-sim-realism-mode"
               className="input"
               value={settings.simRealismMode ?? 'dp600'}
               onChange={(e) =>
@@ -204,7 +211,7 @@ export function SettingsView() {
               <option value="dp600-quick">DP-600 quick · 25 Q / 35 min</option>
               <option value="legacy">Legacy · pre-realism behavior</option>
             </select>
-          </label>
+          </div>
         </div>
       </section>
 

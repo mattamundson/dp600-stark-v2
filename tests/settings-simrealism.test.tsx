@@ -129,3 +129,86 @@ describe('SettingsView — daily-streak threshold input', () => {
     });
   });
 });
+
+// ─── Explicit-label a11y (MEDIUM #5) ──────────────────────────────────────────
+//
+// Every form control in SettingsView must be reachable by an explicit
+// htmlFor-paired <label>, discoverable via getByLabelText. This guards the
+// 2026-05-07 a11y audit fix that converted implicit-label patterns into
+// explicit ones with stable, namespaced ids (setting-*).
+
+describe('SettingsView — explicit label associations', () => {
+  test('Theme select is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() => screen.getByLabelText('Theme')) as HTMLSelectElement;
+    expect(el.tagName).toBe('SELECT');
+    expect(el.id).toBe('setting-theme');
+  });
+
+  test('Exam date input is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() => screen.getByLabelText('Exam date')) as HTMLInputElement;
+    expect(el.tagName).toBe('INPUT');
+    expect(el.type).toBe('date');
+    expect(el.id).toBe('setting-exam-date');
+  });
+
+  test('Reduce motion checkbox is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() => screen.getByLabelText('Reduce motion')) as HTMLInputElement;
+    expect(el.type).toBe('checkbox');
+    expect(el.id).toBe('setting-reduce-motion');
+  });
+
+  test('Beep at final minute checkbox is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() =>
+      screen.getByLabelText(/Beep at final minute/i)
+    ) as HTMLInputElement;
+    expect(el.type).toBe('checkbox');
+    expect(el.id).toBe('setting-beep-final-minute');
+  });
+
+  test('Exam-day focus mode checkbox is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() =>
+      screen.getByLabelText('Exam-day focus mode')
+    ) as HTMLInputElement;
+    expect(el.type).toBe('checkbox');
+    expect(el.id).toBe('setting-exam-day-mode');
+  });
+
+  test('Daily-streak threshold input is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() =>
+      screen.getByLabelText(/Daily-streak threshold/i)
+    ) as HTMLInputElement;
+    expect(el.type).toBe('number');
+    expect(el.id).toBe('setting-streak-min');
+    expect(el.min).toBe('1');
+  });
+
+  test('Simulation realism mode select is reachable by explicit label', async () => {
+    renderSettings();
+    const el = await waitFor(() =>
+      screen.getByLabelText('Simulation realism mode')
+    ) as HTMLSelectElement;
+    expect(el.tagName).toBe('SELECT');
+    expect(el.id).toBe('setting-sim-realism-mode');
+  });
+
+  test('every form control has an explicit label association (no implicit wrappers)', async () => {
+    const { container } = renderSettings();
+    await waitFor(() => screen.getByLabelText('Theme'));
+
+    const inputs = container.querySelectorAll('input, select');
+    // All form controls in the Settings panel must carry an id so labels
+    // can pair with htmlFor; the only exception is the hidden file input
+    // for JSON import (in the Data section, programmatically clicked).
+    inputs.forEach((el) => {
+      const node = el as HTMLInputElement | HTMLSelectElement;
+      if (node instanceof HTMLInputElement && node.type === 'file') return;
+      expect(node.id).toMatch(/^setting-/);
+    });
+  });
+});
