@@ -14,6 +14,8 @@ import { calibrate } from '../analytics/calibration';
 import { rateReadiness, recommendNextBlock } from '../analytics/readiness';
 import { dailyAttemptCounts, studyStreak, todayStats, type DailyCount } from './streak';
 import { sinceLastSim, type SimDelta } from './sim-delta';
+import { UnseenOnlyEntryCard } from '../quiz/UnseenOnlyEntryCard';
+import { SyllabusPreviewCard } from '../syllabus/SyllabusPreviewCard';
 
 export function DashboardView() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -82,7 +84,7 @@ export function DashboardView() {
       )}
 
       {settings && !settings.examDateIso && (
-        <section className="panel border-primary/40 bg-primary/10">
+        <section className="panel border-primary/40 bg-primary/10 exam-day-hide">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-bold">Set your exam date</h2>
@@ -95,7 +97,7 @@ export function DashboardView() {
         </section>
       )}
 
-      <section className="grid gap-4 md:grid-cols-3">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="panel">
           <div className="text-xs uppercase text-faint">Today</div>
           <div className="mt-1 flex items-baseline gap-2">
@@ -121,21 +123,25 @@ export function DashboardView() {
           </div>
         </div>
         <BankCard label="Questions" value={questionBank.length} target={220} to="/quiz?len=10" />
+        <UnseenOnlyEntryCard />
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 exam-day-hide">
         <BankCard label="Flashcards" value={flashcards.length} target={120} to="/flashcards" />
         <BankCard label="Scenario sets" value={scenarios.length} target={15} to="/scenarios" />
+        <SyllabusPreviewCard />
       </section>
 
       <HeatmapPanel cells={heatmap} />
 
       {simDelta && <SinceLastSimPanel delta={simDelta} />}
 
-      <DangerousWeakSpotsPanel attempts={attempts} />
+      <div className="exam-day-hide">
+        <DangerousWeakSpotsPanel attempts={attempts} />
+      </div>
 
       {readinessV2 && (
-        <section className="grid gap-4 md:grid-cols-2">
+        <section className="grid gap-4 md:grid-cols-2 exam-day-hide">
           <div className="panel">
             <h2 className="mb-3 text-lg font-bold">Readiness rating</h2>
             <div className="flex items-baseline gap-3">
@@ -208,41 +214,39 @@ export function DashboardView() {
         </section>
       )}
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <div className="panel">
-          <h2 className="mb-3 text-lg font-bold">Last session</h2>
-          {lastSession?.resultSummary ? (
-            <div className="text-sm">
-              <div className="text-muted">{new Date(lastSession.startedAt).toLocaleString()}</div>
-              <div className="mt-1 font-display text-2xl font-bold">{lastSession.resultSummary.scaledScore}/1000</div>
-              <div className="text-muted">{lastSession.resultSummary.correct}/{lastSession.resultSummary.total} · {Math.round(lastSession.resultSummary.accuracy * 100)}%</div>
-              <div className="mt-3"><Link className="btn btn-ghost" to={`/history/${lastSession.id}`}>Review →</Link></div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted">No completed session yet.</p>
-          )}
-        </div>
+      <section className="panel exam-day-hide">
+        <h2 className="mb-3 text-lg font-bold">Last session</h2>
+        {lastSession?.resultSummary ? (
+          <div className="text-sm">
+            <div className="text-muted">{new Date(lastSession.startedAt).toLocaleString()}</div>
+            <div className="mt-1 font-display text-2xl font-bold">{lastSession.resultSummary.scaledScore}/1000</div>
+            <div className="text-muted">{lastSession.resultSummary.correct}/{lastSession.resultSummary.total} · {Math.round(lastSession.resultSummary.accuracy * 100)}%</div>
+            <div className="mt-3"><Link className="btn btn-ghost" to={`/history/${lastSession.id}`}>Review →</Link></div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted">No completed session yet.</p>
+        )}
+      </section>
 
-        <div className="panel">
-          <h2 className="mb-3 text-lg font-bold">Today on the plan</h2>
-          {todayPlan ? (
-            <div className="text-sm">
-              <div className="mb-1 text-xs uppercase text-faint">Day {todayPlan.day} · {todayPlan.title}</div>
-              <p className="mb-3 text-muted">{todayPlan.focus}</p>
-              <ul className="space-y-1">
-                {todayPlan.blocks.map((b, i) => (
-                  <li key={i} className="flex items-center justify-between rounded-lg border border-border bg-surface2 px-3 py-2">
-                    <span><span className="badge mr-2 capitalize text-[10px]">{b.kind}</span>{b.target}</span>
-                    <span className="text-xs text-muted">{b.minutes}m</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-3"><Link to="/study-plan" className="btn btn-ghost text-xs">Full plan →</Link></div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted">Plan not loaded yet.</p>
-          )}
-        </div>
+      <section className="panel exam-day-hide">
+        <h2 className="mb-3 text-lg font-bold">Today on the plan</h2>
+        {todayPlan ? (
+          <div className="text-sm">
+            <div className="mb-1 text-xs uppercase text-faint">Day {todayPlan.day} · {todayPlan.title}</div>
+            <p className="mb-3 text-muted">{todayPlan.focus}</p>
+            <ul className="space-y-1">
+              {todayPlan.blocks.map((b, i) => (
+                <li key={i} className="flex items-center justify-between rounded-lg border border-border bg-surface2 px-3 py-2">
+                  <span><span className="badge mr-2 capitalize text-[10px]">{b.kind}</span>{b.target}</span>
+                  <span className="text-xs text-muted">{b.minutes}m</span>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3"><Link to="/study-plan" className="btn btn-ghost text-xs">Full plan →</Link></div>
+          </div>
+        ) : (
+          <p className="text-sm text-muted">Plan not loaded yet.</p>
+        )}
       </section>
     </div>
   );
