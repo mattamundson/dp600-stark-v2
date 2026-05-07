@@ -6,6 +6,7 @@ import { SettingsProvider } from './app/providers/SettingsProvider';
 import { ToastProvider } from './app/providers/ToastProvider';
 import { PwaUpdatePrompt } from './components/PwaUpdatePrompt';
 import { KeyboardShortcutsOverlay } from './components/KeyboardShortcutsOverlay';
+import { StudyReminderBanner } from './components/StudyReminderBanner';
 import './styles/globals.css';
 
 const root = document.getElementById('root');
@@ -16,6 +17,7 @@ ReactDOM.createRoot(root).render(
     <SettingsProvider>
       <ToastProvider>
         <HashRouter>
+          <StudyReminderBanner />
           <App />
         </HashRouter>
         <PwaUpdatePrompt />
