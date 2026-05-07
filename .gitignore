@@ -11,3 +11,4 @@ coverage
 .vscode
 *.log
 *.tsbuildinfo
+tmp-lighthouse-*.json
