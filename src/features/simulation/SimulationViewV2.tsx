@@ -442,6 +442,10 @@ function PaletteV2({
             (i === cursor ? ', current' : '') +
             (isFlagged ? ', flagged' : '') +
             (answered ? ', answered' : ', unanswered');
+          // Non-color status glyph so screen readers + low-vision users distinguish state.
+          // Precedence: current ▶ > flagged ⚑ > answered ✓ > none.
+          const indicator =
+            i === cursor ? '▶' : isFlagged ? '⚑' : answered ? '✓' : '';
           return (
             <button
               key={id}
@@ -451,6 +455,11 @@ function PaletteV2({
               className={`h-10 rounded border text-xs sm:h-8 md:h-7 ${cls}`}
               title={`Q${i + 1}${isFlagged ? ' · flagged' : ''}${answered ? ' · answered' : ''}`}
             >
+              {indicator && (
+                <span aria-hidden="true" className="mr-0.5 text-[10px] opacity-80">
+                  {indicator}
+                </span>
+              )}
               {i + 1}
             </button>
           );

@@ -210,4 +210,69 @@ describe('SimulationViewV2', () => {
     },
     15_000
   );
+
+  test(
+    '6. palette: current Q shows "▶" indicator (a11y MEDIUM #3 — non-color status)',
+    async () => {
+      await seedActiveSession(65, 100 * 60 * 1000);
+
+      renderSimV2();
+
+      await waitFor(
+        () => {
+          expect(screen.getAllByText(/\/ 65/).length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 10_000 }
+      );
+
+      const currentBtn = screen
+        .getAllByRole('button')
+        .find((b) => b.getAttribute('aria-current') === 'true');
+      expect(currentBtn).toBeTruthy();
+      expect(currentBtn?.textContent ?? '').toMatch(/▶/);
+    },
+    15_000
+  );
+
+  test(
+    '7. palette: answered Q shows "✓" indicator (a11y MEDIUM #3 — non-color status)',
+    async () => {
+      // Seed a session with Q1 already answered.
+      const ids = makeQuestionIds(65);
+      const s: Session = {
+        id: 'test-sim-session-answered',
+        mode: 'simulation',
+        startedAt: Date.now() - 5000,
+        questionIds: ids,
+        snapshot: {
+          timeRemainingMs: 100 * 60 * 1000,
+          answers: {
+            [ids[0]]: { selectedOptionIds: ['A'], confidence: 'sure' }
+          },
+          submitted: false,
+          flagged: [],
+          // Move cursor off Q1 so its palette button reflects "answered" not "current".
+          cursor: 1
+        }
+      };
+      await saveSession(s);
+
+      renderSimV2();
+
+      await waitFor(
+        () => {
+          expect(screen.getAllByText(/\/ 65/).length).toBeGreaterThanOrEqual(1);
+        },
+        { timeout: 10_000 }
+      );
+
+      // Find the palette button for Q1 by its title="Q1 · answered".
+      const q1btn = screen
+        .getAllByRole('button')
+        .find((b) => /^Q1\b/.test(b.getAttribute('title') ?? '') && /answered/.test(b.getAttribute('title') ?? ''));
+      expect(q1btn).toBeTruthy();
+      expect(q1btn?.textContent ?? '').toMatch(/✓/);
+    },
+    15_000
+  );
 });

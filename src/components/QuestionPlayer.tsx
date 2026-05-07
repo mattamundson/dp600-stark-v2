@@ -220,8 +220,8 @@ export function QuestionPlayer(props: Props) {
                   {opt?.text}
                 </span>
                 <span className="flex gap-1">
-                  <button className="btn-ghost btn h-8 px-2 py-1" onClick={(e) => { e.stopPropagation(); moveOrder(id, -1); }} aria-label="Move up" disabled={locked || i === 0}>↑</button>
-                  <button className="btn-ghost btn h-8 px-2 py-1" onClick={(e) => { e.stopPropagation(); moveOrder(id, 1); }} aria-label="Move down" disabled={locked || i === order.length - 1}>↓</button>
+                  <button className="btn-ghost btn h-10 px-3 py-1" onClick={(e) => { e.stopPropagation(); moveOrder(id, -1); }} aria-label="Move up" disabled={locked || i === 0}>↑</button>
+                  <button className="btn-ghost btn h-10 px-3 py-1" onClick={(e) => { e.stopPropagation(); moveOrder(id, 1); }} aria-label="Move down" disabled={locked || i === order.length - 1}>↓</button>
                 </span>
               </li>
             );
@@ -294,7 +294,12 @@ export function QuestionPlayer(props: Props) {
 function Verdict({ q, result, chosen, chosenOrder }: { q: Question; result: ResultDisplay; chosen: string[]; chosenOrder?: string[] }) {
   const correctSet = new Set(q.correctOptionIds ?? []);
   return (
-    <div className={`rounded-xl border px-4 py-3 text-sm ${result.correct ? 'border-ok/40 bg-ok/10 text-ok' : 'border-bad/40 bg-bad/10 text-bad'}`}>
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      className={`rounded-xl border px-4 py-3 text-sm ${result.correct ? 'border-ok/40 bg-ok/10 text-ok' : 'border-bad/40 bg-bad/10 text-bad'}`}
+    >
       <div className="flex items-center justify-between">
         <strong>{result.correct ? 'Correct' : result.partial > 0 ? `Partial (${Math.round(result.partial * 100)}%)` : 'Incorrect'}</strong>
         <span className="text-xs uppercase tracking-wider text-muted">
