@@ -4,9 +4,10 @@ import { listAttempts, listSessions } from '../../lib/storage/db';
 import { accuracyByDomain, accuracyBySubtopic, calibration, recentWindow, timePerTopic, trend, finishedSessions, pacingSummary, pacingTrend, PROJECTION_QUESTIONS, TARGET_PER_Q_MS_HIGH, type PacingSummary, type PacingTrendPoint } from './engine';
 import { weakSpots } from '../remediation/engine';
 import { readinessFromAttempts } from '../../lib/scoring/score';
-import type { Attempt, Session } from '../../lib/schema';
-import { DOMAIN_LABEL } from '../../lib/schema';
+import type { Attempt, Session, Domain } from '../../lib/schema';
+import { DOMAIN_LABEL, DOMAINS } from '../../lib/schema';
 import { formatHumanDuration } from '../../lib/utils/time';
+import { domainAccuracyTrend, domainAccuracySlope, type DomainTrendPoint } from './per-domain-trend';
 
 export function AnalyticsView() {
   const [attempts, setAttempts] = useState<Attempt[]>([]);
@@ -65,6 +66,8 @@ export function AnalyticsView() {
           ))}
         </div>
       </section>
+
+      <PerDomainTrendPanel attempts={attempts} />
 
       <section className="grid gap-4 md:grid-cols-2">
         <div className="panel">
@@ -299,6 +302,79 @@ function Spark({ points }: { points: number[] }) {
   const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - (p / max) * h).toFixed(1)}`).join(' ');
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className="h-20 w-full">
+      <path d={path} fill="none" stroke="rgb(var(--primary))" strokeWidth="2" />
+      <line x1="0" x2={w} y1={h} y2={h} stroke="rgb(var(--border))" />
+    </svg>
+  );
+}
+
+function PerDomainTrendPanel({ attempts }: { attempts: Attempt[] }) {
+  const series: { domain: Domain; trend: DomainTrendPoint[] }[] = DOMAINS.map((d) => ({
+    domain: d,
+    trend: domainAccuracyTrend(attempts, d, 14),
+  }));
+
+  return (
+    <section className="panel">
+      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="text-lg font-bold">Per-domain trend</h2>
+        <span className="text-xs text-faint">last 14 days · slope = accuracy-points/day</span>
+      </div>
+      <div className="grid gap-3 md:grid-cols-3">
+        {series.map(({ domain, trend }) => (
+          <DomainTrendCard key={domain} domain={domain} trend={trend} />
+        ))}
+      </div>
+      <p className="mt-3 text-xs text-faint">
+        Skips days with zero attempts in that domain. Need ≥ 3 active days to show a slope.
+      </p>
+    </section>
+  );
+}
+
+function DomainTrendCard({ domain, trend }: { domain: Domain; trend: DomainTrendPoint[] }) {
+  const label = DOMAIN_LABEL[domain];
+  if (trend.length < 3) {
+    return (
+      <div className="rounded-lg border border-border bg-surface2 p-3">
+        <div className="mb-1 text-sm font-bold">{label}</div>
+        <p className="text-xs text-muted">Not enough attempts yet (need ≥ 3 days with attempts).</p>
+      </div>
+    );
+  }
+  const slope = domainAccuracySlope(trend);
+  const totalN = trend.reduce((s, p) => s + p.n, 0);
+  const arrow = slope > 0.5 ? '↑' : slope < -0.5 ? '↓' : '~';
+  const tone = slope > 0.5 ? 'text-ok' : slope < -0.5 ? 'text-bad' : 'text-muted';
+  const sign = slope > 0 ? '+' : '';
+  const slopeLabel = arrow === '~' ? 'flat' : `${sign}${slope.toFixed(1)} pp/day`;
+  return (
+    <div className="rounded-lg border border-border bg-surface2 p-3">
+      <div className="mb-1 flex items-baseline justify-between">
+        <div className="text-sm font-bold">{label}</div>
+        <div className={`text-sm font-display font-bold ${tone}`} aria-label={`slope ${slopeLabel}`}>
+          {arrow} {slopeLabel}
+        </div>
+      </div>
+      <DomainSpark points={trend.map((p) => p.accuracy * 100)} />
+      <div className="mt-2 text-xs text-muted">
+        based on {totalN} attempt{totalN === 1 ? '' : 's'} across {trend.length} day{trend.length === 1 ? '' : 's'}
+      </div>
+    </div>
+  );
+}
+
+function DomainSpark({ points }: { points: number[] }) {
+  if (!points.length) return null;
+  const w = 200;
+  const h = 50;
+  const max = 100;
+  const step = w / Math.max(1, points.length - 1);
+  const path = points
+    .map((p, i) => `${i === 0 ? 'M' : 'L'}${(i * step).toFixed(1)},${(h - (p / max) * h).toFixed(1)}`)
+    .join(' ');
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} className="h-12 w-full" role="img" aria-label="Per-domain accuracy trend">
       <path d={path} fill="none" stroke="rgb(var(--primary))" strokeWidth="2" />
       <line x1="0" x2={w} y1={h} y2={h} stroke="rgb(var(--border))" />
     </svg>

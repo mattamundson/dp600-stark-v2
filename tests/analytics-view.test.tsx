@@ -175,4 +175,52 @@ describe('AnalyticsView', () => {
       expect(screen.getByText('Daily accuracy (last 7d)')).toBeInTheDocument();
     });
   });
+
+  test('8. per-domain trend panel heading is present', async () => {
+    const attempts = [
+      attempt({ correct: true, domain: 'prepare', subtopic: 'pipelines' }),
+      attempt({ correct: false, domain: 'prepare', subtopic: 'pipelines' }),
+    ];
+    await seedAndRender(attempts);
+
+    await waitFor(() => {
+      expect(screen.getByText('Per-domain trend')).toBeInTheDocument();
+    });
+  });
+
+  test('9. per-domain empty state: sparse domain shows "Not enough attempts yet"', async () => {
+    // Only one day of attempts in semantic — fewer than 3 active days,
+    // every domain panel should show the empty state.
+    const attempts = [
+      attempt({ domain: 'semantic', correct: true }),
+      attempt({ domain: 'semantic', correct: false }),
+    ];
+    await seedAndRender(attempts);
+
+    await waitFor(() => {
+      expect(screen.getByText('Per-domain trend')).toBeInTheDocument();
+    });
+    // 3 domain cards × empty state message
+    const empties = screen.getAllByText(/Not enough attempts yet/i);
+    expect(empties.length).toBeGreaterThanOrEqual(3);
+  });
+
+  test('10. per-domain trend renders slope indicator for an active domain', async () => {
+    // Seed 3+ active days in `prepare` so the slope renders rather than the empty state.
+    const DAY = 86_400_000;
+    const now = Date.now();
+    const attempts: Attempt[] = [];
+    for (let d = 0; d < 4; d++) {
+      const ts = now - (3 - d) * DAY;
+      attempts.push(attempt({ ts, correct: true, domain: 'prepare', subtopic: 'pipelines' }));
+      attempts.push(attempt({ ts: ts + 1000, correct: d > 0, domain: 'prepare', subtopic: 'pipelines' }));
+    }
+    await seedAndRender(attempts);
+
+    await waitFor(() => {
+      expect(screen.getByText('Per-domain trend')).toBeInTheDocument();
+    });
+    // The "based on N attempts across M days" footer renders only when slope is shown.
+    expect(screen.getAllByText(/based on \d+ attempts? across \d+ days?/i).length).toBeGreaterThanOrEqual(1);
+  });
 });

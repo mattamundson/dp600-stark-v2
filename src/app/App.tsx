@@ -23,6 +23,7 @@ import { MissedPatternsView } from '../features/analytics/MissedPatternsView';
 import { CalcGroupsLabView } from '../features/lab/CalcGroupsLabView';
 import { StarSchemaLabView } from '../features/lab/StarSchemaLabView';
 import { DayStudyView } from '../features/study-docs/DayStudyView';
+import { SyllabusPreviewView } from '../features/syllabus/SyllabusPreviewView';
 
 export function App() {
   return (
@@ -49,6 +50,7 @@ export function App() {
         <Route path="/cockpit" element={<Last72HoursView />} />
         <Route path="/simulation-v2" element={<SimulationViewV2 />} />
         <Route path="/cheat-sheet" element={<CheatSheetView />} />
+        <Route path="/syllabus" element={<SyllabusPreviewView />} />
         <Route path="/missed" element={<MissedPatternsView />} />
         <Route path="/lab/calc-groups" element={<CalcGroupsLabView />} />
         <Route path="/lab/star-schema" element={<StarSchemaLabView />} />
