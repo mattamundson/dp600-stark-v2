@@ -6,6 +6,7 @@ import { groupMissedAttempts, type MissedGroup } from './missed-patterns';
 import type { Attempt } from '../../lib/schema';
 import { DOMAIN_LABEL } from '../../lib/schema';
 import { useSettings } from '../../app/providers/SettingsProvider';
+import { RetentionPanel } from '../missed/RetentionPanel';
 
 /** Format a timestamp as a relative string, e.g. "2 hours ago". */
 function relativeTime(ts: number): string {
@@ -118,6 +119,12 @@ export function MissedPatternsView() {
           )}
         </div>
       </header>
+
+      <RetentionPanel
+        attempts={attempts}
+        resolvedSubtopics={resolvedMap}
+        onPatch={patch}
+      />
 
       {activeGroups.map((group) => (
         <GroupPanel
