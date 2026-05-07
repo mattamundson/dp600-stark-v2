@@ -249,6 +249,16 @@ export interface Settings {
    * options + flag/skip controls remain. Off by default.
    */
   examDayMode?: boolean;
+  /**
+   * Minimum attempts on a local-clock day for that day to qualify as a
+   * "study day" in the daily-streak counter. Must be >= 1. Defaults to 10
+   * when unset (matches the historical hardcoded value).
+   *
+   * Read this via `getStreakMinAttempts(settings)` in
+   * `features/dashboard/streak.ts` and pass the result as the third arg
+   * to `studyStreak(attempts, now, threshold)`.
+   */
+  streakMinAttempts?: number;
 }
 
 /** Single object stored under keyPath 'k' = 'state' */

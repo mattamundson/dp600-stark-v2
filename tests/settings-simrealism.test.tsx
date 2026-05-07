@@ -74,3 +74,58 @@ describe('SettingsView — simRealismMode select', () => {
     });
   });
 });
+
+describe('SettingsView — daily-streak threshold input', () => {
+  test('renders with default value 10 when streakMinAttempts is unset', async () => {
+    renderSettings();
+    const input = await waitFor(() =>
+      screen.getByRole('spinbutton', { name: /Daily-streak threshold/i })
+    ) as HTMLInputElement;
+    expect(input.value).toBe('10');
+    expect(input.type).toBe('number');
+    expect(input.min).toBe('1');
+  });
+
+  test('accepts numeric input and patches settings on blur', async () => {
+    renderSettings();
+    const input = await waitFor(() =>
+      screen.getByRole('spinbutton', { name: /Daily-streak threshold/i })
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '20' } });
+    expect(input.value).toBe('20');
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(input.value).toBe('20');
+    });
+  });
+
+  test('clamps sub-1 values to 1 on blur', async () => {
+    renderSettings();
+    const input = await waitFor(() =>
+      screen.getByRole('spinbutton', { name: /Daily-streak threshold/i })
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '0' } });
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(input.value).toBe('1');
+    });
+  });
+
+  test('clamps empty / non-numeric values to 1 on blur', async () => {
+    renderSettings();
+    const input = await waitFor(() =>
+      screen.getByRole('spinbutton', { name: /Daily-streak threshold/i })
+    ) as HTMLInputElement;
+
+    fireEvent.change(input, { target: { value: '' } });
+    fireEvent.blur(input);
+
+    await waitFor(() => {
+      expect(input.value).toBe('1');
+    });
+  });
+});

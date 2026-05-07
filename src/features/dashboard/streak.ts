@@ -2,7 +2,30 @@
 // All time arithmetic operates on a caller-provided `now` so behavior
 // is deterministic and trivially testable without time mocks.
 
-import type { Attempt } from '../../lib/schema';
+import type { Attempt, Settings } from '../../lib/schema';
+
+/** Default min attempts/day to qualify as a streak day. */
+export const DEFAULT_STREAK_MIN_ATTEMPTS = 10;
+
+/**
+ * Reads the user-configurable streak threshold from Settings, falling back
+ * to {@link DEFAULT_STREAK_MIN_ATTEMPTS} (10) when unset, non-finite, or < 1.
+ *
+ * Consumers should call:
+ *   `studyStreak(attempts, now, getStreakMinAttempts(settings))`
+ *
+ * Kept as a pure helper so `studyStreak` itself stays settings-agnostic and
+ * trivially testable. Settings may be null/undefined during the
+ * SettingsProvider's initial IndexedDB load — this returns the default in
+ * that case.
+ */
+export function getStreakMinAttempts(settings: Settings | null | undefined): number {
+  const v = settings?.streakMinAttempts;
+  if (typeof v !== 'number' || !Number.isFinite(v) || v < 1) {
+    return DEFAULT_STREAK_MIN_ATTEMPTS;
+  }
+  return Math.floor(v);
+}
 
 export interface TodayStats {
   attemptsToday: number;

@@ -1,6 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { studyStreak, todayStats } from '../src/features/dashboard/streak';
-import type { Attempt } from '../src/lib/schema';
+import {
+  DEFAULT_STREAK_MIN_ATTEMPTS,
+  getStreakMinAttempts,
+  studyStreak,
+  todayStats
+} from '../src/features/dashboard/streak';
+import type { Attempt, Settings } from '../src/lib/schema';
 
 function attempt(overrides: Partial<Attempt>): Attempt {
   return {
@@ -100,5 +105,84 @@ describe('studyStreak', () => {
     const attempts: Attempt[] = [...make(0, 5), ...make(1, 5), ...make(2, 5)];
     expect(studyStreak(attempts, NOW, 5)).toBe(3);
     expect(studyStreak(attempts, NOW, 10)).toBe(0);
+  });
+
+  test('low threshold (5) qualifies sparser days as streak days', () => {
+    const make = (offset: number, n: number) =>
+      Array.from({ length: n }, (_, i) => attempt({ ts: dayMs(offset) + i * 1000 }));
+    // 4 consecutive days each with 6 attempts. Threshold 5 => streak of 4.
+    const attempts: Attempt[] = [
+      ...make(0, 6),
+      ...make(1, 6),
+      ...make(2, 6),
+      ...make(3, 6)
+    ];
+    expect(studyStreak(attempts, NOW, 5)).toBe(4);
+  });
+
+  test('high threshold (15) only counts days at or above 15 attempts', () => {
+    const make = (offset: number, n: number) =>
+      Array.from({ length: n }, (_, i) => attempt({ ts: dayMs(offset) + i * 1000 }));
+    // 3 consecutive days, sizes 16, 14, 20. Threshold 15 breaks at day 1
+    // (size 14 < 15), so streak anchored at today is 1.
+    const attempts: Attempt[] = [...make(0, 16), ...make(1, 14), ...make(2, 20)];
+    expect(studyStreak(attempts, NOW, 15)).toBe(1);
+  });
+
+  test('extreme threshold (100) returns 0 for normal volume', () => {
+    const make = (offset: number, n: number) =>
+      Array.from({ length: n }, (_, i) => attempt({ ts: dayMs(offset) + i * 1000 }));
+    const attempts: Attempt[] = [...make(0, 50), ...make(1, 50), ...make(2, 50)];
+    expect(studyStreak(attempts, NOW, 100)).toBe(0);
+  });
+
+  test('threshold 100 with 100+ attempts each day counts the streak', () => {
+    const make = (offset: number, n: number) =>
+      Array.from({ length: n }, (_, i) => attempt({ ts: dayMs(offset) + i * 1000 }));
+    const attempts: Attempt[] = [...make(0, 100), ...make(1, 105), ...make(2, 200)];
+    expect(studyStreak(attempts, NOW, 100)).toBe(3);
+  });
+});
+
+describe('getStreakMinAttempts', () => {
+  const baseSettings: Settings = {
+    theme: 'dark',
+    startedAtIso: '2026-01-01T00:00:00.000Z',
+    reduceMotion: false,
+    showTimer: true,
+    beepOnFinalMinute: false
+  };
+
+  test('returns default (10) when settings is null', () => {
+    expect(getStreakMinAttempts(null)).toBe(DEFAULT_STREAK_MIN_ATTEMPTS);
+    expect(getStreakMinAttempts(null)).toBe(10);
+  });
+
+  test('returns default (10) when settings is undefined', () => {
+    expect(getStreakMinAttempts(undefined)).toBe(10);
+  });
+
+  test('returns default (10) when streakMinAttempts is unset', () => {
+    expect(getStreakMinAttempts(baseSettings)).toBe(10);
+  });
+
+  test('returns the configured value when valid', () => {
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: 5 })).toBe(5);
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: 25 })).toBe(25);
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: 1 })).toBe(1);
+  });
+
+  test('floors fractional values', () => {
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: 7.9 })).toBe(7);
+  });
+
+  test('falls back to default when value < 1', () => {
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: 0 })).toBe(10);
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: -3 })).toBe(10);
+  });
+
+  test('falls back to default when value is NaN or Infinity', () => {
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: Number.NaN })).toBe(10);
+    expect(getStreakMinAttempts({ ...baseSettings, streakMinAttempts: Number.POSITIVE_INFINITY })).toBe(10);
   });
 });

@@ -10,10 +10,16 @@ export function SettingsView() {
   const { push } = useToast();
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [examDate, setExamDate] = useState('');
+  const [streakMin, setStreakMin] = useState<string>('10');
 
   useEffect(() => {
     if (settings?.examDateIso) setExamDate(settings.examDateIso.slice(0, 10));
   }, [settings?.examDateIso]);
+
+  useEffect(() => {
+    const v = settings?.streakMinAttempts;
+    setStreakMin(typeof v === 'number' && Number.isFinite(v) && v >= 1 ? String(Math.floor(v)) : '10');
+  }, [settings?.streakMinAttempts]);
 
   if (!settings) return null;
 
@@ -162,6 +168,28 @@ export function SettingsView() {
               onChange={(e) => void patch({ examDayMode: e.target.checked })}
             />
             Exam-day focus mode
+          </label>
+          <label
+            className="flex flex-col gap-2 text-sm"
+            title="Minimum questions answered in a local-clock day for that day to count toward your daily streak. Must be at least 1; defaults to 10."
+          >
+            <span className="text-muted">Daily-streak threshold (questions/day)</span>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              className="input"
+              value={streakMin}
+              onChange={(e) => setStreakMin(e.target.value)}
+              onBlur={() => {
+                const parsed = Number.parseInt(streakMin, 10);
+                const clamped = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+                setStreakMin(String(clamped));
+                if (clamped !== settings.streakMinAttempts) {
+                  void patch({ streakMinAttempts: clamped });
+                }
+              }}
+            />
           </label>
           <label className="flex flex-col gap-2 text-sm">
             <span className="text-muted">Simulation realism mode</span>
