@@ -25,9 +25,20 @@ interface DrillAnswer {
   confidence?: Confidence;
 }
 
+// Predicate for "this question belongs to the KQL drill pool". Widened from
+// exact `=== 'kql'` to `startsWith('kql')` so kql-advanced, kql-traps,
+// kql-db, kql-update-policy, kql-materialized-views, kql-management, kql-perf
+// (and any future kql-* family slugs) are included automatically. Mirrors the
+// pattern used for the Direct Lake mastery rollup
+// (`subtopic.startsWith('direct-lake')` — see q-direct-lake-mastery.ts).
+// Exported pure for unit testing — no React state, no hooks.
+export function isKqlSubtopic(subtopic: string | undefined | null): boolean {
+  return typeof subtopic === 'string' && subtopic.startsWith('kql');
+}
+
 export function KqlDrillView() {
   const kqlPool = useMemo(
-    () => questionBank.filter((q) => q.subtopic === 'kql'),
+    () => questionBank.filter((q) => isKqlSubtopic(q.subtopic)),
     []
   );
 

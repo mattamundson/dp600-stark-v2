@@ -7,7 +7,7 @@
 import { describe, expect, test, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { KqlDrillView } from '../src/features/lab/KqlDrillView';
+import { KqlDrillView, isKqlSubtopic } from '../src/features/lab/KqlDrillView';
 
 function renderDrill() {
   return render(
@@ -132,4 +132,44 @@ describe('KqlDrillView', () => {
   // fake-timer scheduler. The five tests above cover the critical user flows
   // without the flakiness risk. If a future refactor replaces the delta loop
   // with a fixed-step timer, this test can be added back safely.
+});
+
+describe('isKqlSubtopic predicate (B-D widening fix)', () => {
+  // Blocker B-D: filter was `subtopic === 'kql'`, which silently dropped any
+  // future kql-* family slugs (kql-advanced, kql-traps, kql-db,
+  // kql-update-policy, kql-materialized-views, kql-management, kql-perf).
+  // The fix widens to startsWith('kql') matching the Direct Lake mastery
+  // rollup pattern. These tests pin that behavior.
+
+  test('7. matches exact "kql"', () => {
+    expect(isKqlSubtopic('kql')).toBe(true);
+  });
+
+  test('8. matches kql-advanced (the canonical B-D regression case)', () => {
+    expect(isKqlSubtopic('kql-advanced')).toBe(true);
+  });
+
+  test('9. matches kql-traps and other kql-* family slugs already in the bank', () => {
+    expect(isKqlSubtopic('kql-traps')).toBe(true);
+    expect(isKqlSubtopic('kql-db')).toBe(true);
+    expect(isKqlSubtopic('kql-update-policy')).toBe(true);
+    expect(isKqlSubtopic('kql-materialized-views')).toBe(true);
+    expect(isKqlSubtopic('kql-management')).toBe(true);
+    expect(isKqlSubtopic('kql-perf')).toBe(true);
+  });
+
+  test('10. does NOT match unrelated subtopics that merely contain "kql"', () => {
+    // startsWith — not includes — so a hypothetical "non-kql" or "spark-kql"
+    // must NOT match. This locks in the boundary.
+    expect(isKqlSubtopic('non-kql')).toBe(false);
+    expect(isKqlSubtopic('spark-kql')).toBe(false);
+    expect(isKqlSubtopic('direct-lake')).toBe(false);
+    expect(isKqlSubtopic('dax')).toBe(false);
+  });
+
+  test('11. handles undefined/null/empty subtopic safely (returns false)', () => {
+    expect(isKqlSubtopic(undefined)).toBe(false);
+    expect(isKqlSubtopic(null)).toBe(false);
+    expect(isKqlSubtopic('')).toBe(false);
+  });
 });
