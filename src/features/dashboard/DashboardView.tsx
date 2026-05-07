@@ -12,7 +12,7 @@ import { daysBetween } from '../../lib/utils/time';
 import { DangerousWeakSpotsPanel } from '../../components/DangerousWeakSpotsPanel';
 import { calibrate } from '../analytics/calibration';
 import { rateReadiness, recommendNextBlock } from '../analytics/readiness';
-import { dailyAttemptCounts, studyStreak, todayStats, type DailyCount } from './streak';
+import { dailyAttemptCounts, getStreakMinAttempts, studyStreak, todayStats, type DailyCount } from './streak';
 import { sinceLastSim, type SimDelta } from './sim-delta';
 import { UnseenOnlyEntryCard } from '../quiz/UnseenOnlyEntryCard';
 import { SyllabusPreviewCard } from '../syllabus/SyllabusPreviewCard';
@@ -34,7 +34,10 @@ export function DashboardView() {
   const readiness = attempts.length ? readinessFromAttempts(attempts) : null;
   const calibration = useMemo(() => (attempts.length ? calibrate(attempts) : null), [attempts]);
   const today = useMemo(() => todayStats(attempts, Date.now()), [attempts]);
-  const streak = useMemo(() => studyStreak(attempts, Date.now()), [attempts]);
+  const streak = useMemo(
+    () => studyStreak(attempts, Date.now(), getStreakMinAttempts(settings)),
+    [attempts, settings]
+  );
   const heatmap = useMemo(() => dailyAttemptCounts(attempts, Date.now(), 14), [attempts]);
   const simDelta = useMemo(() => sinceLastSim(sessions, attempts), [sessions, attempts]);
   const readinessV2 = useMemo(() => (attempts.length ? rateReadiness(attempts, questionBank) : null), [attempts]);
