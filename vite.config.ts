@@ -3,7 +3,12 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// GitHub Pages serves at https://<user>.github.io/<repo>/. Use VITE_BASE env to
+// override at build time (set to '/dp600-stark-v2/' in the deploy workflow).
+const base = process.env.VITE_BASE ?? '/';
+
 export default defineConfig({
+  base,
   plugins: [
     react(),
     VitePWA({
@@ -17,14 +22,15 @@ export default defineConfig({
         theme_color: '#0b0f1a',
         background_color: '#0b0f1a',
         display: 'standalone',
-        start_url: '/',
+        start_url: base,
+        scope: base,
         icons: [
           { src: 'favicon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }
         ]
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,woff2,json}'],
-        navigateFallback: '/index.html'
+        navigateFallback: `${base}index.html`
       },
       devOptions: { enabled: false }
     })
