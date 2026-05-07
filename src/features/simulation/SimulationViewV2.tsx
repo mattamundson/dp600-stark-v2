@@ -438,11 +438,16 @@ function PaletteV2({
               : answered
               ? 'bg-ok/15 border-ok/40 text-ok'
               : 'bg-surface2 border-border text-muted';
+          const stateLabel =
+            (i === cursor ? ', current' : '') +
+            (isFlagged ? ', flagged' : '') +
+            (answered ? ', answered' : ', unanswered');
           return (
             <button
               key={id}
               onClick={() => onJump(i)}
               aria-current={i === cursor ? 'true' : undefined}
+              aria-label={`Question ${i + 1}${stateLabel}`}
               className={`h-10 rounded border text-xs sm:h-8 md:h-7 ${cls}`}
               title={`Q${i + 1}${isFlagged ? ' · flagged' : ''}${answered ? ' · answered' : ''}`}
             >

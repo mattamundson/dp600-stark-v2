@@ -197,8 +197,19 @@ export function QuestionPlayer(props: Props) {
             return (
               <li
                 key={id}
+                role="button"
+                tabIndex={locked ? -1 : 0}
+                aria-label={`Position ${i + 1} of ${order.length}: ${opt?.text ?? ''}`}
+                aria-current={highlighted ? 'true' : undefined}
                 onClick={() => !locked && setOrderCursor(i)}
-                className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition ${
+                onKeyDown={(e) => {
+                  if (locked) return;
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setOrderCursor(i);
+                  }
+                }}
+                className={`flex items-center justify-between gap-3 rounded-xl border p-3 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 ${
                   highlighted
                     ? 'border-primary/60 bg-primary/15 cursor-pointer'
                     : 'border-border bg-surface2 cursor-pointer'
